@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MuPDF Mini</string>
+    <string name="app_name">MuPDF</string>
     <string name="version">1.10 (git)</string>
 </resources>

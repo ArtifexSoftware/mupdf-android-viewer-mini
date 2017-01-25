@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
-import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -150,13 +149,9 @@ public class LibraryActivity extends ListActivity
 			return;
 		}
 
-		Intent intent = new Intent(); // this, DocumentActivity.class);
+		Intent intent = new Intent(this, DocumentActivity.class);
 		intent.setAction(Intent.ACTION_VIEW);
 		intent.setData(Uri.fromFile(item.file));
-		try {
-			startActivity(intent);
-		} catch (Exception e) {
-			Log.e("MuPDF", e.toString());
-		}
+		startActivity(intent);
 	}
 }

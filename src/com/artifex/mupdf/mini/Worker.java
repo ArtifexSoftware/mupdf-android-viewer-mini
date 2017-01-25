@@ -1,0 +1,63 @@
+package com.artifex.mupdf.mini;
+
+import android.app.Activity;
+import android.util.Log;
+
+import java.util.concurrent.LinkedBlockingQueue;
+
+public class Worker implements Runnable
+{
+	public static class Task<Output,Input> implements Runnable
+	{
+		protected Output output;
+		protected Input input;
+
+		public Task(Input input) {
+			this.input = input;
+		}
+
+		/* The 'work' method will be executed on the background thread. */
+		public void work() {}
+
+		/* The 'run' method will be executed on the UI thread. */
+		public void run() {}
+	}
+
+	protected Activity activity;
+	protected LinkedBlockingQueue<Task> queue;
+	protected boolean alive;
+
+	public Worker(Activity act) {
+		activity = act;
+		queue = new LinkedBlockingQueue<Task>();
+	}
+
+	public void start() {
+		alive = true;
+		new Thread(this).start();
+	}
+
+	public void stop() {
+		alive = false;
+	}
+
+	public void add(Task task) {
+		try {
+			queue.put(task);
+		} catch (InterruptedException x) {
+			Log.e("MuPDF Worker", x.getMessage());
+		}
+	}
+
+	public void run() {
+		while (alive) {
+			try {
+				Task task = queue.take();
+				task.work();
+				activity.runOnUiThread(task);
+			} catch (Exception x) {
+				Log.e("MuPDF Worker", x.getMessage());
+			}
+		}
+	}
+}

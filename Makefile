@@ -2,13 +2,13 @@ default: debug
 install: install-debug
 
 build.xml:
-	android update project -p . -t android-16 -n "MuPDF Mini"
+	android update project -p . -t android-16 -n "MuPDF"
 
 generate:
 	make -C libmupdf generate
 
 jni-debug: build.xml generate
-	ndk-build -j8 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-16 APP_OPTIM=debug APP_ABI=x86
+	ndk-build -j8 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-16 APP_OPTIM=debug APP_ABI=x86,armeabi-v7a
 jni-release: build.xml generate
 	ndk-build -j8 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-16 APP_OPTIM=release APP_ABI=all
 
