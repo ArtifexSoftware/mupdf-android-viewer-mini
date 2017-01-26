@@ -91,7 +91,10 @@ public class DocumentActivity extends Activity
 				output = renderPage(input);
 			}
 			public void run() {
-				canvas.setImageBitmap(output);
+				if (output != null)
+					canvas.setImageBitmap(output);
+				else
+					canvas.setImageResource(R.drawable.error_page);
 				seekbar.setProgress(input);
 			}
 		});
