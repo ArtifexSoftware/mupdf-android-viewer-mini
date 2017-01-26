@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
@@ -19,8 +20,8 @@ public class DocumentActivity extends Activity
 	protected Worker worker;
 	protected String path;
 	protected Document doc;
-	protected int canvasW;
-	protected int canvasH;
+	protected float layoutW, layoutH, layoutEm;
+	protected int canvasW, canvasH;
 	protected TextView documentLabel;
 	protected TextView pageLabel;
 	protected SeekBar seekbar;
@@ -32,6 +33,8 @@ public class DocumentActivity extends Activity
 	protected Bitmap drawPage(int pageNumber) {
 		Bitmap bitmap = null;
 		try {
+			Log.i("MuPDF", "load page " + pageNumber);
+
 			Page page = doc.loadPage(pageNumber);
 			Rect bounds = page.getBounds();
 			float pageW = bounds.x1 - bounds.x0;
@@ -73,6 +76,12 @@ public class DocumentActivity extends Activity
 		worker = new Worker(this);
 		worker.start();
 
+		DisplayMetrics metrics = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(metrics);
+		layoutW = metrics.widthPixels * 72 / metrics.xdpi;
+		layoutH = metrics.heightPixels * 72 / metrics.ydpi;
+		layoutEm = 10;
+
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
 
@@ -82,6 +91,7 @@ public class DocumentActivity extends Activity
 			public void work() {
 				try {
 					doc = new Document(input);
+					doc.layout(layoutW, layoutH, layoutEm);
 					pageCount = doc.countPages();
 					currentPage = 0;
 				} catch (Exception x) {
