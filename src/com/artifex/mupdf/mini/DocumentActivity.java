@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -25,9 +26,12 @@ public class DocumentActivity extends Activity
 	protected float layoutW, layoutH, layoutEm;
 	protected float displayDPI;
 	protected int canvasW, canvasH;
-	protected TextView documentLabel;
+
+	protected View actionBar;
+	protected View navigationBar;
+	protected TextView titleLabel;
 	protected TextView pageLabel;
-	protected SeekBar seekbar;
+	protected SeekBar pageSeekbar;
 	protected ImageView canvas;
 
 	protected int pageCount;
@@ -36,11 +40,15 @@ public class DocumentActivity extends Activity
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
 		setContentView(R.layout.document_activity);
 
-		documentLabel = (TextView)findViewById(R.id.label_document);
-		pageLabel = (TextView)findViewById(R.id.label_page);
-		seekbar = (SeekBar)findViewById(R.id.seekbar);
+		actionBar = findViewById(R.id.action_bar);
+		navigationBar = findViewById(R.id.navigation_bar);
+		titleLabel = (TextView)findViewById(R.id.title_label);
+		pageLabel = (TextView)findViewById(R.id.page_label);
+		pageSeekbar = (SeekBar)findViewById(R.id.page_seekbar);
 		canvas = (ImageView)findViewById(R.id.canvas);
 
 		worker = new Worker(this);
@@ -53,7 +61,7 @@ public class DocumentActivity extends Activity
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
 
-		documentLabel.setText(path.substring(path.lastIndexOf('/') + 1));
+		titleLabel.setText(path.substring(path.lastIndexOf('/') + 1));
 
 		canvas.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
 			public void onLayoutChange(View v, int l, int t, int r, int b,
@@ -95,7 +103,7 @@ public class DocumentActivity extends Activity
 						}
 					}
 					if (startX > a && startX < b && endX > a && endX < b) {
-						// TODO: toggle toolbar
+						toggleToolbars();
 					}
 					return true;
 				}
@@ -103,7 +111,7 @@ public class DocumentActivity extends Activity
 			}
 		});
 
-		seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+		pageSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			public int newProgress = -1;
 			public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
 				if (fromUser) {
@@ -121,8 +129,18 @@ public class DocumentActivity extends Activity
 		});
 	}
 
+	protected void toggleToolbars() {
+		if (actionBar.getVisibility() == View.VISIBLE) {
+			actionBar.setVisibility(View.INVISIBLE);
+			navigationBar.setVisibility(View.INVISIBLE);
+		} else {
+			actionBar.setVisibility(View.VISIBLE);
+			navigationBar.setVisibility(View.VISIBLE);
+		}
+	}
+
 	protected void loadDocument() {
-		layoutEm = 10;
+		layoutEm = 8;
 		if (canvasH > canvasW) {
 			layoutW = canvasW * 72 / displayDPI;
 			layoutH = canvasH * 72 / displayDPI;
@@ -146,8 +164,8 @@ public class DocumentActivity extends Activity
 			}
 			public void run() {
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
-				seekbar.setMax(pageCount - 1);
-				seekbar.setProgress(currentPage);
+				pageSeekbar.setMax(pageCount - 1);
+				pageSeekbar.setProgress(currentPage);
 			}
 		});
 	}
@@ -158,8 +176,8 @@ public class DocumentActivity extends Activity
 			Log.i(APP, "load page " + pageNumber);
 			Page page = doc.loadPage(pageNumber);
 			Log.i(APP, "draw page " + pageNumber);
-			bitmap = AndroidDrawDevice.drawPage(page, displayDPI);
-			//bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
+			//bitmap = AndroidDrawDevice.drawPage(page, displayDPI);
+			bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
 			//bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
 		} catch (Exception x) {
 			Log.e(APP, x.getMessage());
@@ -178,7 +196,7 @@ public class DocumentActivity extends Activity
 				else
 					canvas.setImageResource(R.drawable.error_page);
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
-				seekbar.setProgress(input);
+				pageSeekbar.setProgress(input);
 			}
 		});
 	}
