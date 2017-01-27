@@ -25,11 +25,12 @@
 				android:textColor="#FFFFFF"
 				android:singleLine="true"
 				android:ellipsize="end"
-				android:textSize="15sp"
+				android:textSize="16sp"
 				/>
 		<Button android:id="@+id/outline_button"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
+				android:visibility="invisible"
 				android:text="Outline"
 				/>
 	</LinearLayout>
@@ -48,14 +49,14 @@
 				android:max="0"
 				/>
 		<TextView android:id="@+id/page_label"
-					android:layout_width="100sp"
+					android:layout_width="110sp"
 					android:layout_height="wrap_content"
 					android:layout_gravity="center"
 					android:textColor="#FFFFFF"
 					android:singleLine="true"
 					android:ellipsize="end"
 					android:gravity="right"
-					android:textSize="15sp"
+					android:textSize="16sp"
 					android:padding="8dp"
 					android:text="- / -"
 					/>

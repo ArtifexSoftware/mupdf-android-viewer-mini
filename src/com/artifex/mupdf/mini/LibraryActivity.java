@@ -50,7 +50,6 @@ public class LibraryActivity extends ListActivity
 		return false;
 	}
 
-	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
@@ -61,7 +60,6 @@ public class LibraryActivity extends ListActivity
 		setListAdapter(adapter);
 	}
 
-	@Override
 	public void onResume() {
 		super.onResume();
 		TimerTask updateTask = new TimerTask() {
@@ -77,7 +75,6 @@ public class LibraryActivity extends ListActivity
 		updateTimer.scheduleAtFixedRate(updateTask, 0, UPDATE_DELAY);
 	}
 
-	@Override
 	public void onPause() {
 		super.onPause();
 		updateTimer.cancel();

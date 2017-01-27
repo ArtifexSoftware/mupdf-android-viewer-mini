@@ -4,6 +4,7 @@ import com.artifex.mupdf.fitz.*;
 import com.artifex.mupdf.fitz.android.*;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -12,26 +13,36 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import java.util.ArrayList;
 
 public class DocumentActivity extends Activity
 {
 	private final String APP = "MuPDF";
 
+	public final int NAVIGATE_REQUEST = 1;
+
 	protected Worker worker;
 	protected String path;
 	protected Document doc;
+	protected String title;
+	protected ArrayList<OutlineActivity.Item> flatOutline;
 	protected float layoutW, layoutH, layoutEm;
 	protected float displayDPI;
 	protected int canvasW, canvasH;
 
 	protected View actionBar;
-	protected View navigationBar;
 	protected TextView titleLabel;
+	protected Button outlineButton;
+
+	protected View navigationBar;
 	protected TextView pageLabel;
 	protected SeekBar pageSeekbar;
+
 	protected ImageView canvas;
 
 	protected int pageCount;
@@ -46,6 +57,7 @@ public class DocumentActivity extends Activity
 
 		actionBar = findViewById(R.id.action_bar);
 		navigationBar = findViewById(R.id.navigation_bar);
+		outlineButton = (Button)findViewById(R.id.outline_button);
 		titleLabel = (TextView)findViewById(R.id.title_label);
 		pageLabel = (TextView)findViewById(R.id.page_label);
 		pageSeekbar = (SeekBar)findViewById(R.id.page_seekbar);
@@ -61,7 +73,8 @@ public class DocumentActivity extends Activity
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
 
-		titleLabel.setText(path.substring(path.lastIndexOf('/') + 1));
+		title = path.substring(path.lastIndexOf('/') + 1);
+		titleLabel.setText(title);
 
 		canvas.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
 			public void onLayoutChange(View v, int l, int t, int r, int b,
@@ -118,6 +131,27 @@ public class DocumentActivity extends Activity
 				}
 			}
 		});
+
+		outlineButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				Intent intent = new Intent(DocumentActivity.this, OutlineActivity.class);
+				Bundle bundle = new Bundle();
+				bundle.putInt("POSITION", currentPage);
+				bundle.putSerializable("OUTLINE", flatOutline);
+				intent.putExtras(bundle);
+				startActivityForResult(intent, NAVIGATE_REQUEST);
+			}
+		});
+	}
+
+	public void onActivityResult(int request, int result, Intent data) {
+		if (request == NAVIGATE_REQUEST && result >= RESULT_FIRST_USER) {
+			int newPage = result - RESULT_FIRST_USER;
+			if (newPage >= 0 && newPage < pageCount && newPage != currentPage) {
+				currentPage = newPage;
+				updatePage();
+			}
+		}
 	}
 
 	protected void toggleToolbars() {
@@ -154,13 +188,15 @@ public class DocumentActivity extends Activity
 			layoutH = canvasW * 72 / displayDPI;
 		}
 		worker.add(new Worker.Task<Void,String>(path) {
-			public String title;
 			public void work() {
 				try {
 					doc = new Document(input);
 					doc.layout(layoutW, layoutH, layoutEm);
 					pageCount = doc.countPages();
-					title = doc.getMetaData(Document.META_INFO_TITLE);
+					updateOutline();
+					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
+					if (metaTitle != null)
+						title = metaTitle;
 					currentPage = 0;
 				} catch (Exception x) {
 					Log.e(APP, x.getMessage());
@@ -170,16 +206,36 @@ public class DocumentActivity extends Activity
 				}
 			}
 			public void run() {
-				if (title != null)
-					titleLabel.setText(title);
+				titleLabel.setText(title);
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setMax(pageCount - 1);
 				pageSeekbar.setProgress(currentPage);
+				if (flatOutline != null)
+					outlineButton.setVisibility(View.VISIBLE);
 			}
 		});
 	}
 
-	protected Bitmap drawPage(int pageNumber) {
+	private void flattenOutline(Outline[] outline, String indent) {
+		for (Outline node : outline) {
+			if (node.title != null)
+				flatOutline.add(new OutlineActivity.Item(indent + node.title, node.page));
+			if (node.down != null)
+				flattenOutline(node.down, indent + "    ");
+		}
+	}
+
+	private void updateOutline() {
+		Outline[] outline = doc.loadOutline();
+		if (outline != null) {
+			flatOutline = new ArrayList<OutlineActivity.Item>();
+			flattenOutline(outline, "");
+		} else {
+			flatOutline = null;
+		}
+	}
+
+	private Bitmap drawPage(int pageNumber) {
 		Bitmap bitmap = null;
 		try {
 			Log.i(APP, "load page " + pageNumber);
