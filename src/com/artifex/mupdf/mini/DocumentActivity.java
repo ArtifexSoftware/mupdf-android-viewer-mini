@@ -149,11 +149,13 @@ public class DocumentActivity extends Activity
 			layoutH = canvasW * 72 / displayDPI;
 		}
 		worker.add(new Worker.Task<Void,String>(path) {
+			public String title;
 			public void work() {
 				try {
 					doc = new Document(input);
 					doc.layout(layoutW, layoutH, layoutEm);
 					pageCount = doc.countPages();
+					title = doc.getMetaData(Document.META_INFO_TITLE);
 					currentPage = 0;
 				} catch (Exception x) {
 					Log.e(APP, x.getMessage());
@@ -163,6 +165,8 @@ public class DocumentActivity extends Activity
 				}
 			}
 			public void run() {
+				if (title != null)
+					titleLabel.setText(title);
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setMax(pageCount - 1);
 				pageSeekbar.setProgress(currentPage);
