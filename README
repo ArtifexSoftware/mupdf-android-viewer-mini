@@ -1,0 +1,75 @@
+MuPDF Mini Viewer
+=================
+
+This is a minimalist Android app using MuPDF to view PDF, XPS, CBZ,
+unprotected EPUB, and FB2 documents.
+
+Prerequisites
+-------------
+
+You need a working Android development environment, consisting of the Android
+SKD and the Android NDK. The easiest way is to use Android Studio to download
+and install the SDK and NDK. Make sure that the Android/Sdk/tools and
+Android/Sdk/ndk-bundle directories are on your path.
+
+You also need Oracle's Java JDK (OpenJDK is not compatible with Android).
+You also need the Apache Ant build system.
+You also need Git, GNU Make, and a C compiler.
+
+If everything is working, you should be able to run these commands
+from the command line:
+
+	Android SDK tools: android, emulator, and adb.
+	Android NDK tools: ndk-build.
+	Oracle Java JDK 8: java, and javac.
+	Apache Ant: ant.
+	Git: git.
+	GNU Make: make, or gmake.
+	C compiler: cc, gcc, or clang.
+
+Building
+--------
+
+Download the project using Git (and don't forget the --recursive flag):
+
+	$ git clone --recursive git://git.ghostscript.com/mupdf-android-viewer-mini.git
+
+If all tools have been installed as per the prerequisites, build the app
+using make:
+
+	$ make
+
+The makefile will take care of setting up the android project and
+configuration files. This is of course assuming that you have set
+up the pre-requisites properly.
+
+Running
+-------
+
+To run the app in the android emulator, first you'll need to set up an
+"Android Virtual Device" for the emulator. Run "android" and in the dialog
+from the "Tools > Manage AVDs..." menu, create a new device. You can also use
+Android Studio to set up a virtual device. Use the x86 ABI for best emulator
+performance.
+
+Then launch the emulator, or connect an android device with USB debugging enabled:
+
+	$ emulator -avd MyVirtualDevice &
+
+Then copy some test files to the device:
+
+	$ adb push file.pdf /mnt/sdcard/Download
+
+Then install the app on the device:
+
+	$ make install
+
+In order to build, install, and launch the app in one step:
+
+	$ make run
+
+To see the error and debugging message log:
+
+	$ adb logcat
+
+Good Luck!
