@@ -6,8 +6,8 @@ import com.artifex.mupdf.fitz.android.*;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
@@ -17,6 +17,8 @@ import android.widget.TextView;
 
 public class DocumentActivity extends Activity
 {
+	private final String APP = "MuPDF";
+
 	protected Worker worker;
 	protected String path;
 	protected Document doc;
@@ -33,36 +35,16 @@ public class DocumentActivity extends Activity
 	protected Bitmap drawPage(int pageNumber) {
 		Bitmap bitmap = null;
 		try {
-			Log.i("MuPDF", "load page " + pageNumber);
-
+			Log.i(APP, "load page " + pageNumber);
 			Page page = doc.loadPage(pageNumber);
-			Rect bounds = page.getBounds();
-			float pageW = bounds.x1 - bounds.x0;
-			float pageH = bounds.y1 - bounds.y0;
-
-			/* Scale page to fit the canvas */
-			float hscale = (float)canvasW / pageW;
-			float vscale = (float)canvasH / pageH;
-			float scale = hscale < vscale ? hscale : vscale;
-			hscale = (float)Math.floor(pageW * scale) / pageW;
-			vscale = (float)Math.floor(pageH * scale) / pageH;
-			Matrix ctm = new Matrix(hscale, vscale);
-
-			Log.i("MuPDF", "render page " + pageNumber);
-
-			RectI bbox = new RectI(bounds.transform(ctm));
-			bitmap = Bitmap.createBitmap(bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, Bitmap.Config.ARGB_8888);
-			AndroidDrawDevice dev = new AndroidDrawDevice(bitmap, bbox, bbox);
-			page.run(dev, ctm, null);
-			dev.close();
-			dev.destroy();
+			Log.i(APP, "draw page " + pageNumber);
+			bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
 		} catch (Exception x) {
-			Log.e("MuPDF", x.getMessage());
+			Log.e(APP, x.getMessage());
 		}
 		return bitmap;
 	}
 
-	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -95,7 +77,7 @@ public class DocumentActivity extends Activity
 					pageCount = doc.countPages();
 					currentPage = 0;
 				} catch (Exception x) {
-					Log.e("MuPDF", x.getMessage());
+					Log.e(APP, x.getMessage());
 					doc = null;
 					pageCount = 1;
 					currentPage = 0;
