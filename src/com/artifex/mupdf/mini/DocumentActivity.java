@@ -90,21 +90,12 @@ public class DocumentActivity extends Activity
 					float endX = event.getX();
 					float a = canvasW / 3;
 					float b = a * 2;
-					if (startX <= a && endX <= a) {
-						if (currentPage > 0) {
-							currentPage --;
-							updatePage();
-						}
-					}
-					if (startX >= b && endX >= b) {
-						if (currentPage < pageCount - 1) {
-							currentPage ++;
-							updatePage();
-						}
-					}
-					if (startX > a && startX < b && endX > a && endX < b) {
+					if (startX <= a && endX <= a)
+						gotoPreviousPage();
+					if (startX >= b && endX >= b)
+						gotoNextPage();
+					if (startX > a && startX < b && endX > a && endX < b)
 						toggleToolbars();
-					}
 					return true;
 				}
 				return false;
@@ -136,6 +127,20 @@ public class DocumentActivity extends Activity
 		} else {
 			actionBar.setVisibility(View.VISIBLE);
 			navigationBar.setVisibility(View.VISIBLE);
+		}
+	}
+
+	protected void gotoPreviousPage() {
+		if (currentPage > 0) {
+			currentPage --;
+			updatePage();
+		}
+	}
+
+	protected void gotoNextPage() {
+		if (currentPage < pageCount - 1) {
+			currentPage ++;
+			updatePage();
 		}
 	}
 
