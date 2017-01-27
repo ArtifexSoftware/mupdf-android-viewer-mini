@@ -23,6 +23,7 @@ public class DocumentActivity extends Activity
 	protected String path;
 	protected Document doc;
 	protected float layoutW, layoutH, layoutEm;
+	protected float displayDPI;
 	protected int canvasW, canvasH;
 	protected TextView documentLabel;
 	protected TextView pageLabel;
@@ -31,19 +32,6 @@ public class DocumentActivity extends Activity
 
 	protected int pageCount;
 	protected int currentPage;
-
-	protected Bitmap drawPage(int pageNumber) {
-		Bitmap bitmap = null;
-		try {
-			Log.i(APP, "load page " + pageNumber);
-			Page page = doc.loadPage(pageNumber);
-			Log.i(APP, "draw page " + pageNumber);
-			bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
-		} catch (Exception x) {
-			Log.e(APP, x.getMessage());
-		}
-		return bitmap;
-	}
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -60,44 +48,24 @@ public class DocumentActivity extends Activity
 
 		DisplayMetrics metrics = new DisplayMetrics();
 		getWindowManager().getDefaultDisplay().getMetrics(metrics);
-		layoutW = metrics.widthPixels * 72 / metrics.xdpi;
-		layoutH = metrics.heightPixels * 72 / metrics.ydpi;
-		layoutEm = 10;
+		displayDPI = (metrics.xdpi + metrics.ydpi) / 2;
 
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
 
 		documentLabel.setText(path.substring(path.lastIndexOf('/') + 1));
 
-		worker.add(new Worker.Task<Void,String>(path) {
-			public void work() {
-				try {
-					doc = new Document(input);
-					doc.layout(layoutW, layoutH, layoutEm);
-					pageCount = doc.countPages();
-					currentPage = 0;
-				} catch (Exception x) {
-					Log.e(APP, x.getMessage());
-					doc = null;
-					pageCount = 1;
-					currentPage = 0;
-				}
-			}
-			public void run() {
-				pageLabel.setText((currentPage+1) + " / " + pageCount);
-				seekbar.setMax(pageCount - 1);
-				seekbar.setProgress(currentPage);
-			}
-		});
-
 		canvas.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
 			public void onLayoutChange(View v, int l, int t, int r, int b,
 					int ol, int ot, int or, int ob) {
-				int newCanvasW = canvas.getWidth();
-				int newCanvasH = canvas.getHeight();
-				if (newCanvasW != canvasW || newCanvasH != canvasH) {
-					canvasW = newCanvasW;
-					canvasH = newCanvasH;
+				int oldCanvasW = canvasW;
+				int oldCanvasH = canvasH;
+				canvasW = v.getWidth();
+				canvasH = v.getHeight();
+				if (pageCount == 0) {
+					loadDocument();
+				}
+				if (oldCanvasW != canvasW || oldCanvasH != canvasH) {
 					updatePage();
 				}
 			}
@@ -153,7 +121,53 @@ public class DocumentActivity extends Activity
 		});
 	}
 
-	public void updatePage() {
+	protected void loadDocument() {
+		layoutEm = 10;
+		if (canvasH > canvasW) {
+			layoutW = canvasW * 72 / displayDPI;
+			layoutH = canvasH * 72 / displayDPI;
+		} else {
+			layoutW = canvasH * 72 / displayDPI;
+			layoutH = canvasW * 72 / displayDPI;
+		}
+		worker.add(new Worker.Task<Void,String>(path) {
+			public void work() {
+				try {
+					doc = new Document(input);
+					doc.layout(layoutW, layoutH, layoutEm);
+					pageCount = doc.countPages();
+					currentPage = 0;
+				} catch (Exception x) {
+					Log.e(APP, x.getMessage());
+					doc = null;
+					pageCount = 1;
+					currentPage = 0;
+				}
+			}
+			public void run() {
+				pageLabel.setText((currentPage+1) + " / " + pageCount);
+				seekbar.setMax(pageCount - 1);
+				seekbar.setProgress(currentPage);
+			}
+		});
+	}
+
+	protected Bitmap drawPage(int pageNumber) {
+		Bitmap bitmap = null;
+		try {
+			Log.i(APP, "load page " + pageNumber);
+			Page page = doc.loadPage(pageNumber);
+			Log.i(APP, "draw page " + pageNumber);
+			bitmap = AndroidDrawDevice.drawPage(page, displayDPI);
+			//bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
+			//bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
+		} catch (Exception x) {
+			Log.e(APP, x.getMessage());
+		}
+		return bitmap;
+	}
+
+	protected void updatePage() {
 		worker.add(new Worker.Task<Bitmap,Integer>(currentPage) {
 			public void work() {
 				output = drawPage(input);
