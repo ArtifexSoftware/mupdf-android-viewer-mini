@@ -25,5 +25,5 @@ run: install-debug
 	adb shell am start -n com.artifex.mupdf.mini/.LibraryActivity
 
 clean:
-	rm -f build.xml local.properties project.properties proguard-project.txt
+	rm -f build.xml
 	rm -rf bin gen libs obj
