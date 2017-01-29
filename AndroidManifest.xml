@@ -7,7 +7,6 @@
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 	<application android:label="@string/app_name" android:icon="@drawable/ic_launcher">
 		<activity android:name=".LibraryActivity"
-				android:label="@string/app_name"
 				android:configChanges="orientation|screenSize|keyboardHidden"
 				>
 			<intent-filter>
@@ -43,7 +42,6 @@
 			</intent-filter>
 		</activity>
 		<activity android:name=".OutlineActivity"
-				android:label="@string/app_name"
 				android:configChanges="orientation|screenSize|keyboardHidden"
 				>
 		</activity>
