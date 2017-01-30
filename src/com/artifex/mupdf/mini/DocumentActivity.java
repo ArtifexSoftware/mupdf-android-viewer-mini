@@ -9,12 +9,13 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -43,7 +44,9 @@ public class DocumentActivity extends Activity
 	protected TextView pageLabel;
 	protected SeekBar pageSeekbar;
 
-	protected ImageView canvas;
+	protected PageView pageView;
+	protected GestureDetector detector;
+	protected ScaleGestureDetector scaleDetector;
 
 	protected int pageCount;
 	protected int currentPage;
@@ -61,7 +64,7 @@ public class DocumentActivity extends Activity
 		titleLabel = (TextView)findViewById(R.id.title_label);
 		pageLabel = (TextView)findViewById(R.id.page_label);
 		pageSeekbar = (SeekBar)findViewById(R.id.page_seekbar);
-		canvas = (ImageView)findViewById(R.id.canvas);
+		pageView = (PageView)findViewById(R.id.page_view);
 
 		worker = new Worker(this);
 		worker.start();
@@ -76,7 +79,7 @@ public class DocumentActivity extends Activity
 		title = path.substring(path.lastIndexOf('/') + 1);
 		titleLabel.setText(title);
 
-		canvas.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+		pageView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
 			public void onLayoutChange(View v, int l, int t, int r, int b,
 					int ol, int ot, int or, int ob) {
 				int oldCanvasW = canvasW;
@@ -92,26 +95,53 @@ public class DocumentActivity extends Activity
 			}
 		});
 
-		canvas.setOnTouchListener(new View.OnTouchListener() {
-			public float startX;
-			public boolean onTouch(View v, MotionEvent event) {
-				switch (event.getAction()) {
-				case MotionEvent.ACTION_DOWN:
-					startX = event.getX();
+		detector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+			public boolean onSingleTapUp(MotionEvent event) {
+				Log.i(APP, "onSingleTapUp");
+				float x = event.getX();
+				float a = canvasW / 3;
+				float b = a * 2;
+				if (x <= a) gotoPreviousPage();
+				if (x >= b) gotoNextPage();
+				if (x > a && x < b) toggleToolbars();
+				return true;
+			};
+			public boolean onFling(MotionEvent e1, MotionEvent e2, float dx, float dy) {
+				/*
+				Log.i(APP, "onFling " + dx + " " + dy);
+				if (Math.abs(dx) > Math.abs(dy) * 2) {
+					if (dx > 0) gotoPreviousPage();
+					if (dx < 0) gotoNextPage();
 					return true;
-				case MotionEvent.ACTION_UP:
-					float endX = event.getX();
-					float a = canvasW / 3;
-					float b = a * 2;
-					if (startX <= a && endX <= a)
-						gotoPreviousPage();
-					if (startX >= b && endX >= b)
-						gotoNextPage();
-					if (startX > a && startX < b && endX > a && endX < b)
-						toggleToolbars();
+				} else if (Math.abs(dy) > Math.abs(dx) * 2) {
+					if (dy > 0) gotoPreviousPage();
+					if (dy < 0) gotoNextPage();
 					return true;
 				}
+				*/
 				return false;
+			}
+			public boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
+				pageView.onScroll(dx, dy);
+				return true;
+			}
+		});
+
+		scaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+			public boolean onScale(ScaleGestureDetector det) {
+				pageView.onScale(det.getFocusX(), det.getFocusY(), det.getScaleFactor());
+				return true;
+			}
+			public void onScaleEnd(ScaleGestureDetector det) {
+				// TODO: re-render bitmap at new resolution
+			}
+		});
+
+		pageView.setOnTouchListener(new View.OnTouchListener() {
+			public boolean onTouch(View v, MotionEvent event) {
+				detector.onTouchEvent(event);
+				scaleDetector.onTouchEvent(event);
+				return true;
 			}
 		});
 
@@ -256,10 +286,7 @@ public class DocumentActivity extends Activity
 				output = drawPage(input);
 			}
 			public void run() {
-				if (output != null)
-					canvas.setImageBitmap(output);
-				else
-					canvas.setImageResource(R.drawable.error_page);
+				pageView.setBitmap(output, 1);
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setProgress(input);
 			}
