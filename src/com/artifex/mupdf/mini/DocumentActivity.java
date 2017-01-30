@@ -73,6 +73,8 @@ public class DocumentActivity extends Activity
 		getWindowManager().getDefaultDisplay().getMetrics(metrics);
 		displayDPI = (metrics.xdpi + metrics.ydpi) / 2;
 
+		pageView.setDisplayDPI(displayDPI);
+
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
 
@@ -106,23 +108,16 @@ public class DocumentActivity extends Activity
 				if (x > a && x < b) toggleToolbars();
 				return true;
 			};
-			public boolean onFling(MotionEvent e1, MotionEvent e2, float dx, float dy) {
-				/*
-				Log.i(APP, "onFling " + dx + " " + dy);
-				if (Math.abs(dx) > Math.abs(dy) * 2) {
-					if (dx > 0) gotoPreviousPage();
-					if (dx < 0) gotoNextPage();
-					return true;
-				} else if (Math.abs(dy) > Math.abs(dx) * 2) {
-					if (dy > 0) gotoPreviousPage();
-					if (dy < 0) gotoNextPage();
-					return true;
-				}
-				*/
-				return false;
+			public boolean onDown(MotionEvent e) {
+				pageView.onDown();
+				return true;
 			}
 			public boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
 				pageView.onScroll(dx, dy);
+				return true;
+			}
+			public boolean onFling(MotionEvent e1, MotionEvent e2, float dx, float dy) {
+				pageView.onFling(dx, dy);
 				return true;
 			}
 		});
@@ -274,7 +269,7 @@ public class DocumentActivity extends Activity
 			//bitmap = AndroidDrawDevice.drawPage(page, displayDPI);
 			bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
 			//bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
-		} catch (Exception x) {
+		} catch (Throwable x) {
 			Log.e(APP, x.getMessage());
 		}
 		return bitmap;
@@ -286,7 +281,7 @@ public class DocumentActivity extends Activity
 				output = drawPage(input);
 			}
 			public void run() {
-				pageView.setBitmap(output, 1);
+				pageView.setBitmap(output, displayDPI);
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setProgress(input);
 			}

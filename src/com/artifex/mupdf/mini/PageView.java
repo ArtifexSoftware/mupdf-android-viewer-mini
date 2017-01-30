@@ -8,21 +8,27 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
 import android.view.View;
+import android.widget.Scroller;
 
 public class PageView extends View
 {
 	protected Bitmap bitmap;
 	protected float bitmapDPI;
-	protected float viewDPI;
+	protected float displayDPI, viewDPI;
 	protected float scrollX, scrollY;
 	protected Matrix transform;
+	protected Scroller scroller;
 
 	protected boolean error;
 	protected Paint errorPaint;
 	protected Path errorPath;
 
+	protected float minDPI, maxDPI;
+
 	public PageView(Context ctx, AttributeSet atts) {
 		super(ctx, atts);
+
+		scroller = new Scroller(ctx);
 
 		transform = new Matrix();
 		bitmapDPI = 1;
@@ -40,15 +46,41 @@ public class PageView extends View
 		errorPath.lineTo(0, 100);
 	}
 
+	public void setDisplayDPI(float dpi) {
+		displayDPI = dpi;
+		viewDPI = dpi;
+		minDPI = dpi / 4;
+		maxDPI = dpi * 2;
+	}
+
 	public void setBitmap(Bitmap b, float z) {
-		bitmap = b;
-		bitmapDPI = z;
-		error = (b == null);
+		if (b != null) {
+			error = false;
+			bitmap = b;
+			bitmapDPI = z;
+		} else {
+			error = true;
+			viewDPI = displayDPI;
+			bitmapDPI = displayDPI;
+			scrollX = 0;
+			scrollY = 0;
+		}
 		invalidate();
 	}
 
+	public float getDPI() {
+		return viewDPI;
+	}
+
+	public void onDown() {
+		if (error) return;
+		scroller.forceFinished(true);
+	}
+		
 	public void onScroll(float dx, float dy) {
 		if (error) return;
+
+		scroller.forceFinished(true);
 
 		scrollX += dx;
 		scrollY += dy;
@@ -59,11 +91,30 @@ public class PageView extends View
 	public void onScale(float focusX, float focusY, float scaleFactor) {
 		if (error) return;
 
+		scroller.forceFinished(true);
+
 		float pageFocusX = (focusX + scrollX) / viewDPI;
 		float pageFocusY = (focusY + scrollY) / viewDPI;
-		viewDPI = viewDPI * scaleFactor;
-		scrollX = pageFocusX * viewDPI - focusX;
-		scrollY = pageFocusY * viewDPI - focusY;
+		if (viewDPI * scaleFactor >= minDPI && viewDPI * scaleFactor <= maxDPI) {
+			viewDPI = viewDPI * scaleFactor;
+			scrollX = pageFocusX * viewDPI - focusX;
+			scrollY = pageFocusY * viewDPI - focusY;
+			invalidate();
+		}
+	}
+
+	public void onFling(float dx, float dy) {
+		if (error) return;
+
+		float canvasW = getWidth();
+		float canvasH = getHeight();
+		float bitmapW = bitmap.getWidth() * viewDPI / bitmapDPI;
+		float bitmapH = bitmap.getHeight() * viewDPI / bitmapDPI;
+		float maxX = bitmapW > canvasW ? bitmapW - canvasW : 0;
+		float maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
+
+		scroller.forceFinished(true);
+		scroller.fling((int)scrollX, (int)scrollY, (int)-dx, (int)-dy, 0, (int)maxX, 0, (int)maxY);
 
 		invalidate();
 	}
@@ -79,6 +130,12 @@ public class PageView extends View
 				canvas.drawPath(errorPath, errorPaint);
 			}
 			return;
+		}
+
+		if (scroller.computeScrollOffset()) {
+			scrollX = scroller.getCurrX();
+			scrollY = scroller.getCurrY();
+			invalidate(); /* keep animating */
 		}
 
 		float canvasW = getWidth();
