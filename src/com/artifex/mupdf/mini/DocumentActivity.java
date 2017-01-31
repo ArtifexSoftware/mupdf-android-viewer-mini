@@ -54,6 +54,7 @@ public class DocumentActivity extends Activity
 
 	protected int pageCount;
 	protected int currentPage;
+	protected boolean wentBack;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -73,7 +74,7 @@ public class DocumentActivity extends Activity
 
 		DisplayMetrics metrics = new DisplayMetrics();
 		getWindowManager().getDefaultDisplay().getMetrics(metrics);
-		displayDPI = (metrics.xdpi + metrics.ydpi) / 2;
+		displayDPI = metrics.densityDpi;
 
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
@@ -223,16 +224,21 @@ public class DocumentActivity extends Activity
 	}
 
 	protected void gotoPreviousPage() {
-		if (currentPage > 0) {
-			currentPage --;
-			updatePage();
+		if (pageView.goBackward()) {
+			if (currentPage > 0) {
+				currentPage --;
+				wentBack = true;
+				updatePage();
+			}
 		}
 	}
 
 	protected void gotoNextPage() {
-		if (currentPage < pageCount - 1) {
-			currentPage ++;
-			updatePage();
+		if (pageView.goForward()) {
+			if (currentPage < pageCount - 1) {
+				currentPage ++;
+				updatePage();
+			}
 		}
 	}
 
@@ -334,11 +340,12 @@ public class DocumentActivity extends Activity
 			}
 			public void run() {
 				if (output != null)
-					pageView.setBitmap(output);
+					pageView.setBitmap(output, wentBack);
 				else
 					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setProgress(input);
+				wentBack = false;
 			}
 		});
 	}

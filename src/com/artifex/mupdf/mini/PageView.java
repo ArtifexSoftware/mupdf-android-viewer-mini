@@ -12,12 +12,14 @@ import android.widget.Scroller;
 
 public class PageView extends View
 {
-	protected Bitmap bitmap;
 	protected float viewScale;
-	protected float scrollX, scrollY;
+	protected Bitmap bitmap;
+	protected int bitmapW, bitmapH;
+	protected int canvasW, canvasH;
+	protected int scrollX, scrollY;
+
 	protected Matrix transform;
 	protected Scroller scroller;
-
 	protected boolean error;
 	protected Paint errorPaint;
 	protected Path errorPath;
@@ -28,12 +30,11 @@ public class PageView extends View
 		super(ctx, atts);
 
 		scroller = new Scroller(ctx);
-
 		transform = new Matrix();
-		viewScale = 1;
 
+		viewScale = 1;
 		minScale = 1;
-		maxScale = 2;
+		maxScale = 3;
 
 		errorPaint = new Paint();
 		errorPaint.setARGB(255, 255, 80, 80);
@@ -53,10 +54,20 @@ public class PageView extends View
 		invalidate();
 	}
 
-	public void setBitmap(Bitmap b) {
+	public void setBitmap(Bitmap b, boolean wentBack) {
 		error = false;
 		bitmap = b;
+		bitmapW = (int)(bitmap.getWidth() * viewScale);
+		bitmapH = (int)(bitmap.getHeight() * viewScale);
+		scroller.forceFinished(true);
+		scrollX = wentBack ? bitmapW - canvasW : 0;
+		scrollY = wentBack ? bitmapH - canvasH : 0;
 		invalidate();
+	}
+
+	public void onSizeChanged(int w, int h, int ow, int oh) {
+		canvasW = w;
+		canvasH = h;
 	}
 
 	public void onDown() {
@@ -72,22 +83,18 @@ public class PageView extends View
 
 	public void onScroll(float dx, float dy) {
 		if (bitmap == null) return;
-		scrollX += dx;
-		scrollY += dy;
+		scrollX += (int)dx;
+		scrollY += (int)dy;
 		scroller.forceFinished(true);
 		invalidate();
 	}
 
 	public void onFling(float dx, float dy) {
 		if (bitmap == null) return;
-		float canvasW = getWidth();
-		float canvasH = getHeight();
-		float bitmapW = bitmap.getWidth() * viewScale;
-		float bitmapH = bitmap.getHeight() * viewScale;
-		float maxX = bitmapW > canvasW ? bitmapW - canvasW : 0;
-		float maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
+		int maxX = bitmapW > canvasW ? bitmapW - canvasW : 0;
+		int maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
 		scroller.forceFinished(true);
-		scroller.fling((int)scrollX, (int)scrollY, (int)-dx, (int)-dy, 0, (int)maxX, 0, (int)maxY);
+		scroller.fling(scrollX, scrollY, (int)-dx, (int)-dy, 0, maxX, 0, maxY);
 		invalidate();
 	}
 
@@ -98,16 +105,50 @@ public class PageView extends View
 		viewScale *= scaleFactor;
 		if (viewScale < minScale) viewScale = minScale;
 		if (viewScale > maxScale) viewScale = maxScale;
-		scrollX = pageFocusX * viewScale - focusX;
-		scrollY = pageFocusY * viewScale - focusY;
+		bitmapW = (int)(bitmap.getWidth() * viewScale);
+		bitmapH = (int)(bitmap.getHeight() * viewScale);
+		scrollX = (int)(pageFocusX * viewScale - focusX);
+		scrollY = (int)(pageFocusY * viewScale - focusY);
 		scroller.forceFinished(true);
 		invalidate();
 	}
 
+	private void startScrollTo(int x, int y) {
+		scroller.forceFinished(true);
+		scroller.startScroll(scrollX, scrollY, x-scrollX, y-scrollY);
+		invalidate();
+	}
+
+	public boolean goBackward() {
+		if (scrollY <= 0) {
+			if (scrollX <= 0) {
+				startScrollTo(0, 0);
+				return true;
+			} else {
+				startScrollTo(scrollX - canvasW * 9 / 10, bitmapH - canvasH);
+			}
+		} else {
+			startScrollTo(0, scrollY - canvasH * 9 / 10);
+		}
+		return false;
+	}
+
+	public boolean goForward() {
+		if (scrollY + canvasH >= bitmapH) {
+			if (scrollX + canvasW >= bitmapW) {
+				startScrollTo(bitmapW - canvasW, bitmapH - canvasH);
+				return true;
+			} else {
+				startScrollTo(scrollX + canvasW * 9 / 10, 0);
+			}
+		} else {
+			startScrollTo(scrollX, scrollY + canvasH * 9 / 10);
+		}
+		return false;
+	}
+
 	public void onDraw(Canvas canvas) {
-		float canvasW = getWidth();
-		float canvasH = getHeight();
-		float x, y;
+		int x, y;
 
 		if (bitmap == null) {
 			if (error) {
@@ -123,7 +164,6 @@ public class PageView extends View
 			invalidate(); /* keep animating */
 		}
 
-		float bitmapW = bitmap.getWidth() * viewScale;
 		if (bitmapW <= canvasW) {
 			scrollX = 0;
 			x = (canvasW - bitmapW) / 2;
@@ -133,7 +173,6 @@ public class PageView extends View
 			x = -scrollX;
 		}
 
-		float bitmapH = bitmap.getHeight() * viewScale;
 		if (bitmapH <= canvasH) {
 			scrollY = 0;
 			y = (canvasH - bitmapH) / 2;
@@ -143,8 +182,8 @@ public class PageView extends View
 			y = -scrollY;
 		}
 
-		transform.setScale(viewScale, viewScale);
-		transform.postTranslate(x, y);
-		canvas.drawBitmap(bitmap, transform, null);
+		canvas.translate(x, y);
+		canvas.scale(viewScale, viewScale);
+		canvas.drawBitmap(bitmap, 0, 0, null);
 	}
 }
