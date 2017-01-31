@@ -4,7 +4,9 @@ import com.artifex.mupdf.fitz.*;
 import com.artifex.mupdf.fitz.android.*;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -37,6 +39,7 @@ public class DocumentActivity extends Activity
 	protected float layoutW, layoutH, layoutEm;
 	protected float displayDPI;
 	protected int canvasW, canvasH;
+	protected SharedPreferences prefs;
 
 	protected View actionBar;
 	protected TextView titleLabel;
@@ -84,6 +87,10 @@ public class DocumentActivity extends Activity
 
 		worker = new Worker(this);
 		worker.start();
+
+		prefs = getPreferences(Context.MODE_PRIVATE);
+		layoutEm = prefs.getFloat("layoutEm", 8);
+		currentPage = prefs.getInt(path, 0);
 
 		pageView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
 			public void onLayoutChange(View v, int l, int t, int r, int b,
@@ -213,6 +220,14 @@ public class DocumentActivity extends Activity
 		}
 	}
 
+	public void onPause() {
+		super.onPause();
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putFloat("layoutEm", layoutEm);
+		editor.putInt(path, currentPage);
+		editor.commit();
+	}
+
 	protected void toggleToolbars() {
 		if (actionBar.getVisibility() == View.VISIBLE) {
 			actionBar.setVisibility(View.GONE);
@@ -243,7 +258,6 @@ public class DocumentActivity extends Activity
 	}
 
 	protected void loadDocument() {
-		layoutEm = 8;
 		if (canvasH > canvasW) {
 			layoutW = canvasW * 72 / displayDPI;
 			layoutH = canvasH * 72 / displayDPI;
@@ -263,12 +277,10 @@ public class DocumentActivity extends Activity
 					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
 					if (metaTitle != null)
 						title = metaTitle;
-					currentPage = 0;
 				} catch (Throwable x) {
 					Log.e(APP, x.getMessage());
 					doc = null;
 					pageCount = 1;
-					currentPage = 0;
 				}
 			}
 			public void run() {

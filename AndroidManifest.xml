@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 		package="com.artifex.mupdf.mini"
-		android:versionCode="1101"
+		android:versionCode="1102"
 		android:versionName="1.10 (git)">
 	<uses-sdk android:minSdkVersion="16" android:targetSdkVersion="16" />
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
