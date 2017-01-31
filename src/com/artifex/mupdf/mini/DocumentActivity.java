@@ -10,12 +10,14 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
+import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -38,7 +40,9 @@ public class DocumentActivity extends Activity
 
 	protected View actionBar;
 	protected TextView titleLabel;
-	protected Button outlineButton;
+	protected View layoutButton;
+	protected PopupMenu layoutPopupMenu;
+	protected View outlineButton;
 
 	protected View navigationBar;
 	protected TextView pageLabel;
@@ -58,16 +62,14 @@ public class DocumentActivity extends Activity
 
 		setContentView(R.layout.document_activity);
 
+		pageView = (PageView)findViewById(R.id.page_view);
 		actionBar = findViewById(R.id.action_bar);
-		navigationBar = findViewById(R.id.navigation_bar);
-		outlineButton = (Button)findViewById(R.id.outline_button);
 		titleLabel = (TextView)findViewById(R.id.title_label);
+		layoutButton = (View)findViewById(R.id.layout_button);
+		outlineButton = (View)findViewById(R.id.outline_button);
+		navigationBar = findViewById(R.id.navigation_bar);
 		pageLabel = (TextView)findViewById(R.id.page_label);
 		pageSeekbar = (SeekBar)findViewById(R.id.page_seekbar);
-		pageView = (PageView)findViewById(R.id.page_view);
-
-		worker = new Worker(this);
-		worker.start();
 
 		DisplayMetrics metrics = new DisplayMetrics();
 		getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -79,6 +81,9 @@ public class DocumentActivity extends Activity
 		title = path.substring(path.lastIndexOf('/') + 1);
 		titleLabel.setText(title);
 
+		worker = new Worker(this);
+		worker.start();
+
 		pageView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
 			public void onLayoutChange(View v, int l, int t, int r, int b,
 					int ol, int ot, int or, int ob) {
@@ -86,12 +91,10 @@ public class DocumentActivity extends Activity
 				int oldCanvasH = canvasH;
 				canvasW = v.getWidth();
 				canvasH = v.getHeight();
-				if (pageCount == 0) {
+				if (pageCount == 0)
 					loadDocument();
-				}
-				if (oldCanvasW != canvasW || oldCanvasH != canvasH) {
+				if (oldCanvasW != canvasW || oldCanvasH != canvasH)
 					updatePage();
-				}
 			}
 		});
 
@@ -156,6 +159,37 @@ public class DocumentActivity extends Activity
 			}
 		});
 
+		layoutPopupMenu = new PopupMenu(this, layoutButton);
+		{
+			Menu m = layoutPopupMenu.getMenu();
+			m.add(0, 6, 0, "6pt");
+			m.add(0, 7, 0, "7pt");
+			m.add(0, 8, 0, "8pt");
+			m.add(0, 9, 0, "9pt");
+			m.add(0, 10, 0, "10pt");
+			m.add(0, 11, 0, "11pt");
+			m.add(0, 12, 0, "12pt");
+			m.add(0, 13, 0, "13pt");
+			m.add(0, 14, 0, "14pt");
+			m.add(0, 15, 0, "15pt");
+			m.add(0, 16, 0, "16pt");
+		}
+		layoutPopupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+			public boolean onMenuItemClick(MenuItem item) {
+				int id = item.getItemId();
+				if (id > 5 && id < 24 && id != layoutEm) {
+					layoutEm = id;
+					relayoutDocument();
+				}
+				return true;
+			}
+		});
+		layoutButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				layoutPopupMenu.show();
+			}
+		});
+
 		outlineButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
 				Intent intent = new Intent(DocumentActivity.this, OutlineActivity.class);
@@ -180,8 +214,8 @@ public class DocumentActivity extends Activity
 
 	protected void toggleToolbars() {
 		if (actionBar.getVisibility() == View.VISIBLE) {
-			actionBar.setVisibility(View.INVISIBLE);
-			navigationBar.setVisibility(View.INVISIBLE);
+			actionBar.setVisibility(View.GONE);
+			navigationBar.setVisibility(View.GONE);
 		} else {
 			actionBar.setVisibility(View.VISIBLE);
 			navigationBar.setVisibility(View.VISIBLE);
@@ -212,12 +246,14 @@ public class DocumentActivity extends Activity
 			layoutH = canvasW * 72 / displayDPI;
 		}
 		worker.add(new Worker.Task<Void,String>(path) {
+			private boolean isReflowable;
 			public void work() {
 				try {
 					doc = new Document(input);
 					doc.layout(layoutW, layoutH, layoutEm);
 					pageCount = doc.countPages();
 					updateOutline();
+					isReflowable = doc.isReflowable();
 					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
 					if (metaTitle != null)
 						title = metaTitle;
@@ -234,6 +270,8 @@ public class DocumentActivity extends Activity
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setMax(pageCount - 1);
 				pageSeekbar.setProgress(currentPage);
+				if (isReflowable)
+					layoutButton.setVisibility(View.VISIBLE);
 				if (flatOutline != null)
 					outlineButton.setVisibility(View.VISIBLE);
 			}
@@ -257,6 +295,21 @@ public class DocumentActivity extends Activity
 		} else {
 			flatOutline = null;
 		}
+	}
+
+	protected void relayoutDocument() {
+		final float savedPosition = (float)currentPage / pageCount;
+		worker.add(new Worker.Task<Void,Void>(null) {
+			public void work() {
+				doc.layout(layoutW, layoutH, layoutEm);
+				pageCount = doc.countPages();
+				updateOutline();
+			}
+			public void run() {
+				currentPage = (int)(savedPosition * pageCount);
+				updatePage();
+			}
+		});
 	}
 
 	private Bitmap drawPage(int pageNumber) {

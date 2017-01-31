@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MuPDF mini</string>
-    <string name="library_no_external_storage">[no external storage]</string>
-    <string name="library_not_a_directory">[not a directory]</string>
-    <string name="library_permission_denied">[permission denied]</string>
+	<string name="app_name">MuPDF mini</string>
+	<string name="library_no_external_storage">[no external storage]</string>
+	<string name="library_not_a_directory">[not a directory]</string>
+	<string name="library_permission_denied">[permission denied]</string>
+	<string name="button_outline">Outline</string>
+	<string name="button_layout">Layout</string>
 </resources>
