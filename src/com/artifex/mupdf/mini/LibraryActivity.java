@@ -85,14 +85,14 @@ public class LibraryActivity extends ListActivity
 		adapter.clear();
 
 		if (!isExternalStorageReadable()) {
-			setTitle("MuPDF");
-			adapter.add(new LibraryItem(topDirectory, "[no external storage]"));
+			setTitle(R.string.app_name);
+			adapter.add(new LibraryItem(topDirectory, getString(R.string.library_no_external_storage)));
 			return;
 		}
 
 		if (!currentDirectory.isDirectory()) {
-			setTitle("MuPDF");
-			adapter.add(new LibraryItem(topDirectory, "[not a directory]"));
+			setTitle(R.string.app_name);
+			adapter.add(new LibraryItem(topDirectory, getString(R.string.library_not_a_directory)));
 			return;
 		}
 
@@ -120,7 +120,7 @@ public class LibraryActivity extends ListActivity
 		});
 
 		if (files == null)
-			adapter.add(new LibraryItem(topDirectory, "[permission denied]"));
+			adapter.add(new LibraryItem(topDirectory, getString(R.string.library_permission_denied)));
 		else
 			for (File file : files)
 				adapter.add(new LibraryItem(file));

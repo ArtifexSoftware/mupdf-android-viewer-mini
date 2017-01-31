@@ -2,7 +2,7 @@ default: debug
 install: install-debug
 
 build.xml:
-	android update project -p . -t android-16 -n "MuPDF"
+	android update project -p . -t android-16 -n "MuPDF mini"
 
 generate:
 	make -C libmupdf generate

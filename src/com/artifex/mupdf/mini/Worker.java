@@ -55,7 +55,7 @@ public class Worker implements Runnable
 				Task task = queue.take();
 				task.work();
 				activity.runOnUiThread(task);
-			} catch (Exception x) {
+			} catch (Throwable x) {
 				Log.e("MuPDF Worker", x.getMessage());
 			}
 		}

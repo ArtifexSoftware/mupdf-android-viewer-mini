@@ -73,8 +73,6 @@ public class DocumentActivity extends Activity
 		getWindowManager().getDefaultDisplay().getMetrics(metrics);
 		displayDPI = (metrics.xdpi + metrics.ydpi) / 2;
 
-		pageView.setDisplayDPI(displayDPI);
-
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
 
@@ -99,13 +97,14 @@ public class DocumentActivity extends Activity
 
 		detector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
 			public boolean onSingleTapUp(MotionEvent event) {
-				Log.i(APP, "onSingleTapUp");
-				float x = event.getX();
-				float a = canvasW / 3;
-				float b = a * 2;
-				if (x <= a) gotoPreviousPage();
-				if (x >= b) gotoNextPage();
-				if (x > a && x < b) toggleToolbars();
+				if (!pageView.onSingleTapUp(event.getX(), event.getY())) {
+					float x = event.getX();
+					float a = canvasW / 3;
+					float b = a * 2;
+					if (x <= a) gotoPreviousPage();
+					if (x >= b) gotoNextPage();
+					if (x > a && x < b) toggleToolbars();
+				}
 				return true;
 			};
 			public boolean onDown(MotionEvent e) {
@@ -128,7 +127,7 @@ public class DocumentActivity extends Activity
 				return true;
 			}
 			public void onScaleEnd(ScaleGestureDetector det) {
-				// TODO: re-render bitmap at new resolution
+				// TODO: render high res bitmap patch
 			}
 		});
 
@@ -223,7 +222,7 @@ public class DocumentActivity extends Activity
 					if (metaTitle != null)
 						title = metaTitle;
 					currentPage = 0;
-				} catch (Exception x) {
+				} catch (Throwable x) {
 					Log.e(APP, x.getMessage());
 					doc = null;
 					pageCount = 1;
@@ -267,8 +266,8 @@ public class DocumentActivity extends Activity
 			Page page = doc.loadPage(pageNumber);
 			Log.i(APP, "draw page " + pageNumber);
 			//bitmap = AndroidDrawDevice.drawPage(page, displayDPI);
-			bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
-			//bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
+			//bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
+			bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
 		} catch (Throwable x) {
 			Log.e(APP, x.getMessage());
 		}
@@ -281,7 +280,10 @@ public class DocumentActivity extends Activity
 				output = drawPage(input);
 			}
 			public void run() {
-				pageView.setBitmap(output, displayDPI);
+				if (output != null)
+					pageView.setBitmap(output);
+				else
+					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setProgress(input);
 			}
