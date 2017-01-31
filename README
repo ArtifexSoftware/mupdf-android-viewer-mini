@@ -72,4 +72,30 @@ To see the error and debugging message log:
 
 	$ adb logcat
 
+Release
+-------
+
+To release you MUST first change the package name.
+Do NOT use the com.artifex domain for your custom app!
+
+	$ mv src/com/artifex src/com/YourCompanyName
+
+Change all references to com.artifex.mupdf.mini into com.YourCompanyName.mupdf.mini
+in the Java source files and XML resources.
+
+In order to sign a release build, you will need to create a key and a key store.
+
+	$ keytool -genkey -v -keystore android.keystore -alias MyKey -validity 3650 -keysize 2048 -keyalg RSA
+
+Then add the following entries to local.properties:
+
+	key.store=android.keystore
+	key.store.password=<your keystore password>
+	key.alias=MyKey
+	key.alias.password=<your key password>
+
+If your keystore has been set up properly, you can now build a release APK.
+
+	$ make release
+
 Good Luck!
