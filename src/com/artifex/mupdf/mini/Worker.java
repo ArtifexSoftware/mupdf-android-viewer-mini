@@ -7,20 +7,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Worker implements Runnable
 {
-	public static class Task<Output,Input> implements Runnable
-	{
-		protected Output output;
-		protected Input input;
-
-		public Task(Input input) {
-			this.input = input;
-		}
-
-		/* The 'work' method will be executed on the background thread. */
-		public void work() {}
-
-		/* The 'run' method will be executed on the UI thread. */
-		public void run() {}
+	public static class Task implements Runnable {
+		public void work() {} /* The 'work' method will be executed on the background thread. */
+		public void run() {} /* The 'run' method will be executed on the UI thread. */
 	}
 
 	protected Activity activity;

@@ -3,7 +3,6 @@ package com.artifex.mupdf.mini;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
@@ -12,29 +11,25 @@ import android.widget.Scroller;
 
 public class PageView extends View
 {
-	protected float viewScale;
+	protected float viewScale, minScale, maxScale;
 	protected Bitmap bitmap;
 	protected int bitmapW, bitmapH;
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
 
-	protected Matrix transform;
 	protected Scroller scroller;
 	protected boolean error;
 	protected Paint errorPaint;
 	protected Path errorPath;
 
-	protected float minScale, maxScale;
-
 	public PageView(Context ctx, AttributeSet atts) {
 		super(ctx, atts);
 
 		scroller = new Scroller(ctx);
-		transform = new Matrix();
 
 		viewScale = 1;
 		minScale = 1;
-		maxScale = 3;
+		maxScale = 2;
 
 		errorPaint = new Paint();
 		errorPaint.setARGB(255, 255, 80, 80);
@@ -113,37 +108,29 @@ public class PageView extends View
 		invalidate();
 	}
 
-	private void startScrollTo(int x, int y) {
-		scroller.forceFinished(true);
-		scroller.startScroll(scrollX, scrollY, x-scrollX, y-scrollY);
-		invalidate();
-	}
-
 	public boolean goBackward() {
+		scroller.forceFinished(true);
 		if (scrollY <= 0) {
-			if (scrollX <= 0) {
-				startScrollTo(0, 0);
+			if (scrollX <= 0)
 				return true;
-			} else {
-				startScrollTo(scrollX - canvasW * 9 / 10, bitmapH - canvasH);
-			}
+			scroller.startScroll(scrollX, scrollY, -canvasW * 9 / 10, bitmapH - canvasH - scrollY, 500);
 		} else {
-			startScrollTo(0, scrollY - canvasH * 9 / 10);
+			scroller.startScroll(scrollX, scrollY, 0, -canvasH * 9 / 10, 250);
 		}
+		invalidate();
 		return false;
 	}
 
 	public boolean goForward() {
+		scroller.forceFinished(true);
 		if (scrollY + canvasH >= bitmapH) {
-			if (scrollX + canvasW >= bitmapW) {
-				startScrollTo(bitmapW - canvasW, bitmapH - canvasH);
+			if (scrollX + canvasW >= bitmapW)
 				return true;
-			} else {
-				startScrollTo(scrollX + canvasW * 9 / 10, 0);
-			}
+			scroller.startScroll(scrollX, scrollY, canvasW * 9 / 10, -scrollY, 500);
 		} else {
-			startScrollTo(scrollX, scrollY + canvasH * 9 / 10);
+			scroller.startScroll(scrollX, scrollY, 0, canvasH * 9 / 10, 250);
 		}
+		invalidate();
 		return false;
 	}
 

@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -33,6 +32,8 @@ public class DocumentActivity extends Activity
 
 	protected Worker worker;
 	protected String path;
+	protected boolean hasLoaded;
+	protected boolean isReflowable;
 	protected Document doc;
 	protected String title;
 	protected ArrayList<OutlineActivity.Item> flatOutline;
@@ -91,6 +92,7 @@ public class DocumentActivity extends Activity
 		prefs = getPreferences(Context.MODE_PRIVATE);
 		layoutEm = prefs.getFloat("layoutEm", 8);
 		currentPage = prefs.getInt(path, 0);
+		hasLoaded = false;
 
 		pageView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
 			public void onLayoutChange(View v, int l, int t, int r, int b,
@@ -99,10 +101,19 @@ public class DocumentActivity extends Activity
 				int oldCanvasH = canvasH;
 				canvasW = v.getWidth();
 				canvasH = v.getHeight();
-				if (pageCount == 0)
+				layoutW = canvasW * 72 / displayDPI;
+				layoutH = canvasH * 72 / displayDPI;
+				if (!hasLoaded) {
+					hasLoaded = true;
 					loadDocument();
-				if (oldCanvasW != canvasW || oldCanvasH != canvasH)
-					updatePage();
+					loadPage();
+					loadOutline();
+				} else if (oldCanvasW != canvasW || oldCanvasH != canvasH) {
+					if (isReflowable)
+						relayoutDocument();
+					else
+						loadPage();
+				}
 			}
 		});
 
@@ -160,35 +171,30 @@ public class DocumentActivity extends Activity
 			}
 			public void onStartTrackingTouch(SeekBar seekbar) {}
 			public void onStopTrackingTouch(SeekBar seekbar) {
-				if (newProgress >= 0 && newProgress != currentPage) {
-					currentPage = newProgress;
-					updatePage();
-				}
+				gotoPage(newProgress);
 			}
 		});
 
 		layoutPopupMenu = new PopupMenu(this, layoutButton);
-		{
-			Menu m = layoutPopupMenu.getMenu();
-			m.add(0, 6, 0, "6pt");
-			m.add(0, 7, 0, "7pt");
-			m.add(0, 8, 0, "8pt");
-			m.add(0, 9, 0, "9pt");
-			m.add(0, 10, 0, "10pt");
-			m.add(0, 11, 0, "11pt");
-			m.add(0, 12, 0, "12pt");
-			m.add(0, 13, 0, "13pt");
-			m.add(0, 14, 0, "14pt");
-			m.add(0, 15, 0, "15pt");
-			m.add(0, 16, 0, "16pt");
-		}
+		layoutPopupMenu.getMenuInflater().inflate(R.menu.layout_menu, layoutPopupMenu.getMenu());
 		layoutPopupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
 			public boolean onMenuItemClick(MenuItem item) {
-				int id = item.getItemId();
-				if (id > 5 && id < 24 && id != layoutEm) {
-					layoutEm = id;
-					relayoutDocument();
+				float oldLayoutEm = layoutEm;
+				switch (item.getItemId()) {
+				case R.id.action_layout_6pt: layoutEm = 6; break;
+				case R.id.action_layout_7pt: layoutEm = 7; break;
+				case R.id.action_layout_8pt: layoutEm = 8; break;
+				case R.id.action_layout_9pt: layoutEm = 9; break;
+				case R.id.action_layout_10pt: layoutEm = 10; break;
+				case R.id.action_layout_11pt: layoutEm = 11; break;
+				case R.id.action_layout_12pt: layoutEm = 12; break;
+				case R.id.action_layout_13pt: layoutEm = 13; break;
+				case R.id.action_layout_14pt: layoutEm = 14; break;
+				case R.id.action_layout_15pt: layoutEm = 15; break;
+				case R.id.action_layout_16pt: layoutEm = 16; break;
 				}
+				if (oldLayoutEm != layoutEm)
+					relayoutDocument();
 				return true;
 			}
 		});
@@ -210,22 +216,125 @@ public class DocumentActivity extends Activity
 		});
 	}
 
-	public void onActivityResult(int request, int result, Intent data) {
-		if (request == NAVIGATE_REQUEST && result >= RESULT_FIRST_USER) {
-			int newPage = result - RESULT_FIRST_USER;
-			if (newPage >= 0 && newPage < pageCount && newPage != currentPage) {
-				currentPage = newPage;
-				updatePage();
-			}
-		}
-	}
-
 	public void onPause() {
 		super.onPause();
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putFloat("layoutEm", layoutEm);
 		editor.putInt(path, currentPage);
 		editor.commit();
+	}
+
+	public void onActivityResult(int request, int result, Intent data) {
+		if (request == NAVIGATE_REQUEST && result >= RESULT_FIRST_USER)
+			gotoPage(result - RESULT_FIRST_USER);
+	}
+
+	protected void loadDocument() {
+		worker.add(new Worker.Task() {
+			public void work() {
+				try {
+					Log.i(APP, "load document");
+					doc = new Document(path);
+					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
+					if (metaTitle != null)
+						title = metaTitle;
+					isReflowable = doc.isReflowable();
+					if (isReflowable) {
+						Log.i(APP, "layout document");
+						doc.layout(layoutW, layoutH, layoutEm);
+					}
+					pageCount = doc.countPages();
+				} catch (Throwable x) {
+					Log.e(APP, x.getMessage());
+					doc = null;
+					pageCount = 1;
+					currentPage = 0;
+				}
+			}
+			public void run() {
+				if (currentPage < 0 || currentPage >= pageCount)
+					currentPage = 0;
+				titleLabel.setText(title);
+				if (isReflowable)
+					layoutButton.setVisibility(View.VISIBLE);
+				pageSeekbar.setMax(pageCount - 1);
+			}
+		});
+	}
+
+	protected void relayoutDocument() {
+		worker.add(new Worker.Task() {
+			public void work() {
+				try {
+					long mark = doc.makeBookmark(currentPage);
+					Log.i(APP, "relayout document");
+					doc.layout(layoutW, layoutH, layoutEm);
+					pageCount = doc.countPages();
+					currentPage = doc.findBookmark(mark);
+				} catch (Throwable x) {
+					Log.e(APP, x.getMessage());
+					pageCount = 1;
+					currentPage = 0;
+				}
+			}
+			public void run() {
+				loadPage();
+				loadOutline();
+			}
+		});
+	}
+
+	private void loadOutline() {
+		worker.add(new Worker.Task() {
+			private void flattenOutline(Outline[] outline, String indent) {
+				for (Outline node : outline) {
+					if (node.title != null)
+						flatOutline.add(new OutlineActivity.Item(indent + node.title, node.page));
+					if (node.down != null)
+						flattenOutline(node.down, indent + "    ");
+				}
+			}
+			public void work() {
+				Log.i(APP, "load outline");
+				Outline[] outline = doc.loadOutline();
+				if (outline != null) {
+					flatOutline = new ArrayList<OutlineActivity.Item>();
+					flattenOutline(outline, "");
+				} else {
+					flatOutline = null;
+				}
+			}
+			public void run() {
+				if (flatOutline != null)
+					outlineButton.setVisibility(View.VISIBLE);
+			}
+		});
+	}
+
+	protected void loadPage() {
+		final int pageNumber = currentPage;
+		worker.add(new Worker.Task() {
+			public Bitmap bitmap;
+			public void work() {
+				try {
+					Log.i(APP, "load page " + pageNumber);
+					Page page = doc.loadPage(pageNumber);
+					Log.i(APP, "draw page " + pageNumber);
+					bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
+				} catch (Throwable x) {
+					Log.e(APP, x.getMessage());
+				}
+			}
+			public void run() {
+				if (bitmap != null)
+					pageView.setBitmap(bitmap, wentBack);
+				else
+					pageView.setError();
+				pageLabel.setText((currentPage+1) + " / " + pageCount);
+				pageSeekbar.setProgress(pageNumber);
+				wentBack = false;
+			}
+		});
 	}
 
 	protected void toggleToolbars() {
@@ -241,9 +350,8 @@ public class DocumentActivity extends Activity
 	protected void gotoPreviousPage() {
 		if (pageView.goBackward()) {
 			if (currentPage > 0) {
-				currentPage --;
 				wentBack = true;
-				updatePage();
+				gotoPage(currentPage - 1);
 			}
 		}
 	}
@@ -251,114 +359,15 @@ public class DocumentActivity extends Activity
 	protected void gotoNextPage() {
 		if (pageView.goForward()) {
 			if (currentPage < pageCount - 1) {
-				currentPage ++;
-				updatePage();
+				gotoPage(currentPage + 1);
 			}
 		}
 	}
 
-	protected void loadDocument() {
-		if (canvasH > canvasW) {
-			layoutW = canvasW * 72 / displayDPI;
-			layoutH = canvasH * 72 / displayDPI;
-		} else {
-			layoutW = canvasH * 72 / displayDPI;
-			layoutH = canvasW * 72 / displayDPI;
+	protected void gotoPage(int p) {
+		if (p >= 0 && p < pageCount && p != currentPage) {
+			currentPage = p;
+			loadPage();
 		}
-		worker.add(new Worker.Task<Void,String>(path) {
-			private boolean isReflowable;
-			public void work() {
-				try {
-					doc = new Document(input);
-					doc.layout(layoutW, layoutH, layoutEm);
-					pageCount = doc.countPages();
-					updateOutline();
-					isReflowable = doc.isReflowable();
-					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
-					if (metaTitle != null)
-						title = metaTitle;
-				} catch (Throwable x) {
-					Log.e(APP, x.getMessage());
-					doc = null;
-					pageCount = 1;
-				}
-			}
-			public void run() {
-				titleLabel.setText(title);
-				pageLabel.setText((currentPage+1) + " / " + pageCount);
-				pageSeekbar.setMax(pageCount - 1);
-				pageSeekbar.setProgress(currentPage);
-				if (isReflowable)
-					layoutButton.setVisibility(View.VISIBLE);
-				if (flatOutline != null)
-					outlineButton.setVisibility(View.VISIBLE);
-			}
-		});
-	}
-
-	private void flattenOutline(Outline[] outline, String indent) {
-		for (Outline node : outline) {
-			if (node.title != null)
-				flatOutline.add(new OutlineActivity.Item(indent + node.title, node.page));
-			if (node.down != null)
-				flattenOutline(node.down, indent + "    ");
-		}
-	}
-
-	private void updateOutline() {
-		Outline[] outline = doc.loadOutline();
-		if (outline != null) {
-			flatOutline = new ArrayList<OutlineActivity.Item>();
-			flattenOutline(outline, "");
-		} else {
-			flatOutline = null;
-		}
-	}
-
-	protected void relayoutDocument() {
-		final float savedPosition = (float)currentPage / pageCount;
-		worker.add(new Worker.Task<Void,Void>(null) {
-			public void work() {
-				doc.layout(layoutW, layoutH, layoutEm);
-				pageCount = doc.countPages();
-				updateOutline();
-			}
-			public void run() {
-				currentPage = (int)(savedPosition * pageCount);
-				updatePage();
-			}
-		});
-	}
-
-	private Bitmap drawPage(int pageNumber) {
-		Bitmap bitmap = null;
-		try {
-			Log.i(APP, "load page " + pageNumber);
-			Page page = doc.loadPage(pageNumber);
-			Log.i(APP, "draw page " + pageNumber);
-			//bitmap = AndroidDrawDevice.drawPage(page, displayDPI);
-			//bitmap = AndroidDrawDevice.drawPageFit(page, canvasW, canvasH);
-			bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
-		} catch (Throwable x) {
-			Log.e(APP, x.getMessage());
-		}
-		return bitmap;
-	}
-
-	protected void updatePage() {
-		worker.add(new Worker.Task<Bitmap,Integer>(currentPage) {
-			public void work() {
-				output = drawPage(input);
-			}
-			public void run() {
-				if (output != null)
-					pageView.setBitmap(output, wentBack);
-				else
-					pageView.setError();
-				pageLabel.setText((currentPage+1) + " / " + pageCount);
-				pageSeekbar.setProgress(input);
-				wentBack = false;
-			}
-		});
 	}
 }
