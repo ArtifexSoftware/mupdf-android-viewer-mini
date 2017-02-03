@@ -1,22 +1,35 @@
 package com.artifex.mupdf.mini;
 
+import com.artifex.mupdf.fitz.*;
+import com.artifex.mupdf.fitz.android.*;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.Scroller;
 
-public class PageView extends View
+public class PageView extends View implements
+	GestureDetector.OnGestureListener,
+	ScaleGestureDetector.OnScaleGestureListener
 {
+	protected DocumentActivity actionListener;
+
 	protected float viewScale, minScale, maxScale;
 	protected Bitmap bitmap;
+	protected Page page;
 	protected int bitmapW, bitmapH;
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
 
+	protected GestureDetector detector;
+	protected ScaleGestureDetector scaleDetector;
 	protected Scroller scroller;
 	protected boolean error;
 	protected Paint errorPaint;
@@ -26,6 +39,8 @@ public class PageView extends View
 		super(ctx, atts);
 
 		scroller = new Scroller(ctx);
+		detector = new GestureDetector(ctx, this);
+		scaleDetector = new ScaleGestureDetector(ctx, this);
 
 		viewScale = 1;
 		minScale = 1;
@@ -41,6 +56,10 @@ public class PageView extends View
 		errorPath.lineTo(100, 100);
 		errorPath.moveTo(100, -100);
 		errorPath.lineTo(-100, 100);
+	}
+
+	public void setActionListener(DocumentActivity l) {
+		actionListener = l;
 	}
 
 	public void setError() {
@@ -63,75 +82,105 @@ public class PageView extends View
 	public void onSizeChanged(int w, int h, int ow, int oh) {
 		canvasW = w;
 		canvasH = h;
+		actionListener.onPageViewSizeChanged(w, h);
 	}
 
-	public void onDown() {
-		if (bitmap == null) return;
+	public boolean onTouchEvent(MotionEvent event) {
+		detector.onTouchEvent(event);
+		scaleDetector.onTouchEvent(event);
+		return true;
+	}
+
+	public boolean onDown(MotionEvent e) {
 		scroller.forceFinished(true);
+		return true;
 	}
 
-	public boolean onSingleTapUp(float x, float y) {
-		if (bitmap == null) return false;
+	public void onShowPress(MotionEvent e) { }
+	public void onLongPress(MotionEvent e) { }
+
+	public boolean onSingleTapUp(MotionEvent e) {
+		float x = e.getX();
 		// TODO: detect tap on links
-		return false;
+		float a = canvasW / 3;
+		float b = a * 2;
+		if (x <= a) goBackward();
+		if (x >= b) goForward();
+		if (x > a && x < b) actionListener.toggleUI();
+		return true;
 	}
 
-	public void onScroll(float dx, float dy) {
-		if (bitmap == null) return;
-		scrollX += (int)dx;
-		scrollY += (int)dy;
-		scroller.forceFinished(true);
-		invalidate();
+	public boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
+		if (bitmap != null) {
+			scrollX += (int)dx;
+			scrollY += (int)dy;
+			scroller.forceFinished(true);
+			invalidate();
+		}
+		return true;
 	}
 
-	public void onFling(float dx, float dy) {
-		if (bitmap == null) return;
-		int maxX = bitmapW > canvasW ? bitmapW - canvasW : 0;
-		int maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
-		scroller.forceFinished(true);
-		scroller.fling(scrollX, scrollY, (int)-dx, (int)-dy, 0, maxX, 0, maxY);
-		invalidate();
+	public boolean onFling(MotionEvent e1, MotionEvent e2, float dx, float dy) {
+		if (bitmap != null) {
+			int maxX = bitmapW > canvasW ? bitmapW - canvasW : 0;
+			int maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
+			scroller.forceFinished(true);
+			scroller.fling(scrollX, scrollY, (int)-dx, (int)-dy, 0, maxX, 0, maxY);
+			invalidate();
+		}
+		return true;
 	}
 
-	public void onScale(float focusX, float focusY, float scaleFactor) {
-		if (bitmap == null) return;
-		float pageFocusX = (focusX + scrollX) / viewScale;
-		float pageFocusY = (focusY + scrollY) / viewScale;
-		viewScale *= scaleFactor;
-		if (viewScale < minScale) viewScale = minScale;
-		if (viewScale > maxScale) viewScale = maxScale;
-		bitmapW = (int)(bitmap.getWidth() * viewScale);
-		bitmapH = (int)(bitmap.getHeight() * viewScale);
-		scrollX = (int)(pageFocusX * viewScale - focusX);
-		scrollY = (int)(pageFocusY * viewScale - focusY);
-		scroller.forceFinished(true);
-		invalidate();
+	public boolean onScaleBegin(ScaleGestureDetector det) { return true; }
+
+	public boolean onScale(ScaleGestureDetector det) {
+		if (bitmap != null) {
+			float focusX = det.getFocusX();
+			float focusY = det.getFocusY();
+			float scaleFactor = det.getScaleFactor();
+			float pageFocusX = (focusX + scrollX) / viewScale;
+			float pageFocusY = (focusY + scrollY) / viewScale;
+			viewScale *= scaleFactor;
+			if (viewScale < minScale) viewScale = minScale;
+			if (viewScale > maxScale) viewScale = maxScale;
+			bitmapW = (int)(bitmap.getWidth() * viewScale);
+			bitmapH = (int)(bitmap.getHeight() * viewScale);
+			scrollX = (int)(pageFocusX * viewScale - focusX);
+			scrollY = (int)(pageFocusY * viewScale - focusY);
+			scroller.forceFinished(true);
+			invalidate();
+		}
+		return true;
 	}
 
-	public boolean goBackward() {
+	public void onScaleEnd(ScaleGestureDetector det) { }
+
+	public void goBackward() {
 		scroller.forceFinished(true);
 		if (scrollY <= 0) {
-			if (scrollX <= 0)
-				return true;
+			if (scrollX <= 0) {
+				actionListener.goBackward();
+				return;
+			}
 			scroller.startScroll(scrollX, scrollY, -canvasW * 9 / 10, bitmapH - canvasH - scrollY, 500);
 		} else {
 			scroller.startScroll(scrollX, scrollY, 0, -canvasH * 9 / 10, 250);
 		}
 		invalidate();
-		return false;
 	}
 
-	public boolean goForward() {
+	public void goForward() {
 		scroller.forceFinished(true);
 		if (scrollY + canvasH >= bitmapH) {
-			if (scrollX + canvasW >= bitmapW)
-				return true;
+			if (scrollX + canvasW >= bitmapW) {
+				actionListener.goForward();
+				return;
+			}
 			scroller.startScroll(scrollX, scrollY, canvasW * 9 / 10, -scrollY, 500);
 		} else {
 			scroller.startScroll(scrollX, scrollY, 0, canvasH * 9 / 10, 250);
 		}
 		invalidate();
-		return false;
 	}
 
 	public void onDraw(Canvas canvas) {

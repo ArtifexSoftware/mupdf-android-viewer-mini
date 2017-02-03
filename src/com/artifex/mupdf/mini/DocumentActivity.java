@@ -11,10 +11,7 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -31,30 +28,27 @@ public class DocumentActivity extends Activity
 	public final int NAVIGATE_REQUEST = 1;
 
 	protected Worker worker;
+	protected SharedPreferences prefs;
+
+	protected Document doc;
 	protected String path;
 	protected boolean hasLoaded;
 	protected boolean isReflowable;
-	protected Document doc;
 	protected String title;
 	protected ArrayList<OutlineActivity.Item> flatOutline;
 	protected float layoutW, layoutH, layoutEm;
 	protected float displayDPI;
 	protected int canvasW, canvasH;
-	protected SharedPreferences prefs;
 
+	protected PageView pageView;
 	protected View actionBar;
 	protected TextView titleLabel;
 	protected View layoutButton;
 	protected PopupMenu layoutPopupMenu;
 	protected View outlineButton;
-
 	protected View navigationBar;
 	protected TextView pageLabel;
 	protected SeekBar pageSeekbar;
-
-	protected PageView pageView;
-	protected GestureDetector detector;
-	protected ScaleGestureDetector scaleDetector;
 
 	protected int pageCount;
 	protected int currentPage;
@@ -65,25 +59,19 @@ public class DocumentActivity extends Activity
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-		setContentView(R.layout.document_activity);
-
-		pageView = (PageView)findViewById(R.id.page_view);
-		actionBar = findViewById(R.id.action_bar);
-		titleLabel = (TextView)findViewById(R.id.title_label);
-		layoutButton = (View)findViewById(R.id.layout_button);
-		outlineButton = (View)findViewById(R.id.outline_button);
-		navigationBar = findViewById(R.id.navigation_bar);
-		pageLabel = (TextView)findViewById(R.id.page_label);
-		pageSeekbar = (SeekBar)findViewById(R.id.page_seekbar);
-
 		DisplayMetrics metrics = new DisplayMetrics();
 		getWindowManager().getDefaultDisplay().getMetrics(metrics);
 		displayDPI = metrics.densityDpi;
+
+		setContentView(R.layout.document_activity);
+		actionBar = findViewById(R.id.action_bar);
+		navigationBar = findViewById(R.id.navigation_bar);
 
 		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
 		path = getIntent().getData().getPath();
 
 		title = path.substring(path.lastIndexOf('/') + 1);
+		titleLabel = (TextView)findViewById(R.id.title_label);
 		titleLabel.setText(title);
 
 		worker = new Worker(this);
@@ -94,73 +82,11 @@ public class DocumentActivity extends Activity
 		currentPage = prefs.getInt(path, 0);
 		hasLoaded = false;
 
-		pageView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-			public void onLayoutChange(View v, int l, int t, int r, int b,
-					int ol, int ot, int or, int ob) {
-				int oldCanvasW = canvasW;
-				int oldCanvasH = canvasH;
-				canvasW = v.getWidth();
-				canvasH = v.getHeight();
-				layoutW = canvasW * 72 / displayDPI;
-				layoutH = canvasH * 72 / displayDPI;
-				if (!hasLoaded) {
-					hasLoaded = true;
-					loadDocument();
-					loadPage();
-					loadOutline();
-				} else if (oldCanvasW != canvasW || oldCanvasH != canvasH) {
-					if (isReflowable)
-						relayoutDocument();
-					else
-						loadPage();
-				}
-			}
-		});
+		pageView = (PageView)findViewById(R.id.page_view);
+		pageView.setActionListener(this);
 
-		detector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
-			public boolean onSingleTapUp(MotionEvent event) {
-				if (!pageView.onSingleTapUp(event.getX(), event.getY())) {
-					float x = event.getX();
-					float a = canvasW / 3;
-					float b = a * 2;
-					if (x <= a) gotoPreviousPage();
-					if (x >= b) gotoNextPage();
-					if (x > a && x < b) toggleToolbars();
-				}
-				return true;
-			};
-			public boolean onDown(MotionEvent e) {
-				pageView.onDown();
-				return true;
-			}
-			public boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
-				pageView.onScroll(dx, dy);
-				return true;
-			}
-			public boolean onFling(MotionEvent e1, MotionEvent e2, float dx, float dy) {
-				pageView.onFling(dx, dy);
-				return true;
-			}
-		});
-
-		scaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-			public boolean onScale(ScaleGestureDetector det) {
-				pageView.onScale(det.getFocusX(), det.getFocusY(), det.getScaleFactor());
-				return true;
-			}
-			public void onScaleEnd(ScaleGestureDetector det) {
-				// TODO: render high res bitmap patch
-			}
-		});
-
-		pageView.setOnTouchListener(new View.OnTouchListener() {
-			public boolean onTouch(View v, MotionEvent event) {
-				detector.onTouchEvent(event);
-				scaleDetector.onTouchEvent(event);
-				return true;
-			}
-		});
-
+		pageLabel = (TextView)findViewById(R.id.page_label);
+		pageSeekbar = (SeekBar)findViewById(R.id.page_seekbar);
 		pageSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			public int newProgress = -1;
 			public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
@@ -175,6 +101,19 @@ public class DocumentActivity extends Activity
 			}
 		});
 
+		outlineButton = (View)findViewById(R.id.outline_button);
+		outlineButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				Intent intent = new Intent(DocumentActivity.this, OutlineActivity.class);
+				Bundle bundle = new Bundle();
+				bundle.putInt("POSITION", currentPage);
+				bundle.putSerializable("OUTLINE", flatOutline);
+				intent.putExtras(bundle);
+				startActivityForResult(intent, NAVIGATE_REQUEST);
+			}
+		});
+
+		layoutButton = (View)findViewById(R.id.layout_button);
 		layoutPopupMenu = new PopupMenu(this, layoutButton);
 		layoutPopupMenu.getMenuInflater().inflate(R.menu.layout_menu, layoutPopupMenu.getMenu());
 		layoutPopupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -203,17 +142,6 @@ public class DocumentActivity extends Activity
 				layoutPopupMenu.show();
 			}
 		});
-
-		outlineButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				Intent intent = new Intent(DocumentActivity.this, OutlineActivity.class);
-				Bundle bundle = new Bundle();
-				bundle.putInt("POSITION", currentPage);
-				bundle.putSerializable("OUTLINE", flatOutline);
-				intent.putExtras(bundle);
-				startActivityForResult(intent, NAVIGATE_REQUEST);
-			}
-		});
 	}
 
 	public void onPause() {
@@ -227,6 +155,23 @@ public class DocumentActivity extends Activity
 	public void onActivityResult(int request, int result, Intent data) {
 		if (request == NAVIGATE_REQUEST && result >= RESULT_FIRST_USER)
 			gotoPage(result - RESULT_FIRST_USER);
+	}
+
+	public void onPageViewSizeChanged(int w, int h) {
+		canvasW = w;
+		canvasH = h;
+		layoutW = canvasW * 72 / displayDPI;
+		layoutH = canvasH * 72 / displayDPI;
+		if (!hasLoaded) {
+			hasLoaded = true;
+			loadDocument();
+			loadPage();
+			loadOutline();
+		} else if (isReflowable) {
+			relayoutDocument();
+		} else {
+			loadPage();
+		}
 	}
 
 	protected void loadDocument() {
@@ -257,7 +202,6 @@ public class DocumentActivity extends Activity
 				titleLabel.setText(title);
 				if (isReflowable)
 					layoutButton.setVisibility(View.VISIBLE);
-				pageSeekbar.setMax(pageCount - 1);
 			}
 		});
 	}
@@ -331,13 +275,14 @@ public class DocumentActivity extends Activity
 				else
 					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
+				pageSeekbar.setMax(pageCount - 1);
 				pageSeekbar.setProgress(pageNumber);
 				wentBack = false;
 			}
 		});
 	}
 
-	protected void toggleToolbars() {
+	public void toggleUI() {
 		if (actionBar.getVisibility() == View.VISIBLE) {
 			actionBar.setVisibility(View.GONE);
 			navigationBar.setVisibility(View.GONE);
@@ -347,20 +292,16 @@ public class DocumentActivity extends Activity
 		}
 	}
 
-	protected void gotoPreviousPage() {
-		if (pageView.goBackward()) {
-			if (currentPage > 0) {
-				wentBack = true;
-				gotoPage(currentPage - 1);
-			}
+	public void goBackward() {
+		if (currentPage > 0) {
+			wentBack = true;
+			gotoPage(currentPage - 1);
 		}
 	}
 
-	protected void gotoNextPage() {
-		if (pageView.goForward()) {
-			if (currentPage < pageCount - 1) {
-				gotoPage(currentPage + 1);
-			}
+	public void goForward() {
+		if (currentPage < pageCount - 1) {
+			gotoPage(currentPage + 1);
 		}
 	}
 
