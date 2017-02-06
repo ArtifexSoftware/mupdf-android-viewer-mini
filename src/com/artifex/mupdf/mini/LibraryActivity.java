@@ -132,6 +132,7 @@ public class LibraryActivity extends ListActivity
 				if (ad && !bd) return -1;
 				if (bd && !ad) return 1;
 				if (a.string.equals("../")) return -1;
+				if (b.string.equals("../")) return 1;
 				return a.string.compareTo(b.string);
 			}
 		});
