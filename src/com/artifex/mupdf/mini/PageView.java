@@ -27,6 +27,8 @@ public class PageView extends View implements
 	protected int bitmapW, bitmapH;
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
+	protected Link[] links;
+	protected boolean showLinks;
 
 	protected GestureDetector detector;
 	protected ScaleGestureDetector scaleDetector;
@@ -34,6 +36,7 @@ public class PageView extends View implements
 	protected boolean error;
 	protected Paint errorPaint;
 	protected Path errorPath;
+	protected Paint linkPaint;
 
 	public PageView(Context ctx, AttributeSet atts) {
 		super(ctx, atts);
@@ -45,6 +48,9 @@ public class PageView extends View implements
 		viewScale = 1;
 		minScale = 1;
 		maxScale = 2;
+
+		linkPaint = new Paint();
+		linkPaint.setARGB(32, 0, 0, 255);
 
 		errorPaint = new Paint();
 		errorPaint.setARGB(255, 255, 80, 80);
@@ -64,12 +70,14 @@ public class PageView extends View implements
 
 	public void setError() {
 		error = true;
+		links = null;
 		bitmap = null;
 		invalidate();
 	}
 
-	public void setBitmap(Bitmap b, boolean wentBack) {
+	public void setBitmap(Bitmap b, boolean wentBack, Link[] ls) {
 		error = false;
+		links = ls;
 		bitmap = b;
 		bitmapW = (int)(bitmap.getWidth() * viewScale);
 		bitmapH = (int)(bitmap.getHeight() * viewScale);
@@ -96,17 +104,47 @@ public class PageView extends View implements
 		return true;
 	}
 
-	public void onShowPress(MotionEvent e) { }
-	public void onLongPress(MotionEvent e) { }
+	public void onShowPress(MotionEvent e) {
+		showLinks = true;
+		invalidate();
+	}
+
+	public void onLongPress(MotionEvent e) {
+		showLinks = false;
+		invalidate();
+	}
 
 	public boolean onSingleTapUp(MotionEvent e) {
+		boolean foundLink = false;
 		float x = e.getX();
-		// TODO: detect tap on links
-		float a = canvasW / 3;
-		float b = a * 2;
-		if (x <= a) goBackward();
-		if (x >= b) goForward();
-		if (x > a && x < b) actionListener.toggleUI();
+		float y = e.getY();
+		if (links != null) {
+			float dx = (bitmapW <= canvasW) ? (bitmapW - canvasW) / 2 : scrollX;
+			float dy = (bitmapH <= canvasH) ? (bitmapH - canvasH) / 2 : scrollY;
+			float mx = (x + dx) / viewScale;
+			float my = (y + dy) / viewScale;
+			for (Link link : links) {
+				Rect b = link.bounds;
+				if (mx >= b.x0 && mx <= b.x1 && my >= b.y0 && my <= b.y1) {
+					System.out.println("hit link " + link.page + " " + link.uri);
+					if (link.page >= 0)
+						actionListener.gotoPage(link.page);
+					else if (link.uri != null)
+						actionListener.gotoURI(link.uri);
+					foundLink = true;
+					break;
+				}
+			}
+		}
+		if (!foundLink) {
+			float a = canvasW / 3;
+			float b = a * 2;
+			if (x <= a) goBackward();
+			if (x >= b) goForward();
+			if (x > a && x < b) actionListener.toggleUI();
+		}
+		showLinks = false;
+		invalidate();
 		return true;
 	}
 
@@ -115,6 +153,7 @@ public class PageView extends View implements
 			scrollX += (int)dx;
 			scrollY += (int)dy;
 			scroller.forceFinished(true);
+			showLinks = false;
 			invalidate();
 		}
 		return true;
@@ -126,6 +165,7 @@ public class PageView extends View implements
 			int maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
 			scroller.forceFinished(true);
 			scroller.fling(scrollX, scrollY, (int)-dx, (int)-dy, 0, maxX, 0, maxY);
+			showLinks = false;
 			invalidate();
 		}
 		return true;
@@ -148,6 +188,7 @@ public class PageView extends View implements
 			scrollX = (int)(pageFocusX * viewScale - focusX);
 			scrollY = (int)(pageFocusY * viewScale - focusY);
 			scroller.forceFinished(true);
+			showLinks = false;
 			invalidate();
 		}
 		return true;
@@ -221,5 +262,12 @@ public class PageView extends View implements
 		canvas.translate(x, y);
 		canvas.scale(viewScale, viewScale);
 		canvas.drawBitmap(bitmap, 0, 0, null);
+
+		if (showLinks && links != null) {
+			for (Link link : links) {
+				Rect b = link.bounds;
+				canvas.drawRect(b.x0, b.y0, b.x1, b.y1, linkPaint);
+			}
+		}
 	}
 }

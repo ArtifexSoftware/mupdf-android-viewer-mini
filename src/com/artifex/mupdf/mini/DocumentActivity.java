@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -20,6 +21,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class DocumentActivity extends Activity
 {
@@ -52,6 +54,7 @@ public class DocumentActivity extends Activity
 
 	protected int pageCount;
 	protected int currentPage;
+	protected Stack<Integer> history;
 	protected boolean wentBack;
 
 	public void onCreate(Bundle savedInstanceState) {
@@ -73,6 +76,8 @@ public class DocumentActivity extends Activity
 		title = path.substring(path.lastIndexOf('/') + 1);
 		titleLabel = (TextView)findViewById(R.id.title_label);
 		titleLabel.setText(title);
+
+		history = new Stack<Integer>();
 
 		worker = new Worker(this);
 		worker.start();
@@ -155,6 +160,15 @@ public class DocumentActivity extends Activity
 	public void onActivityResult(int request, int result, Intent data) {
 		if (request == NAVIGATE_REQUEST && result >= RESULT_FIRST_USER)
 			gotoPage(result - RESULT_FIRST_USER);
+	}
+
+	public void onBackPressed() {
+		if (history.empty()) {
+			super.onBackPressed();
+		} else {
+			currentPage = history.pop();
+			loadPage();
+		}
 	}
 
 	public void onPageViewSizeChanged(int w, int h) {
@@ -259,19 +273,25 @@ public class DocumentActivity extends Activity
 		final int pageNumber = currentPage;
 		worker.add(new Worker.Task() {
 			public Bitmap bitmap;
+			public Link[] links;
 			public void work() {
 				try {
 					Log.i(APP, "load page " + pageNumber);
 					Page page = doc.loadPage(pageNumber);
 					Log.i(APP, "draw page " + pageNumber);
-					bitmap = AndroidDrawDevice.drawPageFitWidth(page, canvasW);
+					Matrix ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
+					bitmap = AndroidDrawDevice.drawPage(page, ctm);
+					links = page.getLinks();
+					if (links != null)
+						for (Link link : links)
+							link.bounds.transform(ctm);
 				} catch (Throwable x) {
 					Log.e(APP, x.getMessage());
 				}
 			}
 			public void run() {
 				if (bitmap != null)
-					pageView.setBitmap(bitmap, wentBack);
+					pageView.setBitmap(bitmap, wentBack, links);
 				else
 					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
@@ -295,20 +315,32 @@ public class DocumentActivity extends Activity
 	public void goBackward() {
 		if (currentPage > 0) {
 			wentBack = true;
-			gotoPage(currentPage - 1);
+			currentPage --;
+			loadPage();
 		}
 	}
 
 	public void goForward() {
 		if (currentPage < pageCount - 1) {
-			gotoPage(currentPage + 1);
+			currentPage ++;
+			loadPage();
 		}
 	}
 
-	protected void gotoPage(int p) {
+	public void gotoPage(int p) {
 		if (p >= 0 && p < pageCount && p != currentPage) {
+			history.push(currentPage);
 			currentPage = p;
 			loadPage();
+		}
+	}
+
+	public void gotoURI(String uri) {
+		Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+		try {
+			startActivity(intent);
+		} catch (Throwable x) {
+			Log.e(APP, x.getMessage());
 		}
 	}
 }
