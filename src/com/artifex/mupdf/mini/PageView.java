@@ -69,6 +69,8 @@ public class PageView extends View implements
 	}
 
 	public void setError() {
+		if (bitmap != null)
+			bitmap.recycle();
 		error = true;
 		links = null;
 		bitmap = null;
@@ -76,6 +78,8 @@ public class PageView extends View implements
 	}
 
 	public void setBitmap(Bitmap b, boolean wentBack, Link[] ls) {
+		if (bitmap != null)
+			bitmap.recycle();
 		error = false;
 		links = ls;
 		bitmap = b;
