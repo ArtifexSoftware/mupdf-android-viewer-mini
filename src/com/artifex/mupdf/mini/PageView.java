@@ -105,12 +105,10 @@ public class PageView extends View implements
 	}
 
 	public void onShowPress(MotionEvent e) {
-		showLinks = true;
-		invalidate();
 	}
 
 	public void onLongPress(MotionEvent e) {
-		showLinks = false;
+		showLinks = !showLinks;
 		invalidate();
 	}
 
@@ -118,7 +116,7 @@ public class PageView extends View implements
 		boolean foundLink = false;
 		float x = e.getX();
 		float y = e.getY();
-		if (links != null) {
+		if (showLinks && links != null) {
 			float dx = (bitmapW <= canvasW) ? (bitmapW - canvasW) / 2 : scrollX;
 			float dy = (bitmapH <= canvasH) ? (bitmapH - canvasH) / 2 : scrollY;
 			float mx = (x + dx) / viewScale;
@@ -143,7 +141,6 @@ public class PageView extends View implements
 			if (x >= b) goForward();
 			if (x > a && x < b) actionListener.toggleUI();
 		}
-		showLinks = false;
 		invalidate();
 		return true;
 	}
@@ -153,7 +150,6 @@ public class PageView extends View implements
 			scrollX += (int)dx;
 			scrollY += (int)dy;
 			scroller.forceFinished(true);
-			showLinks = false;
 			invalidate();
 		}
 		return true;
@@ -165,7 +161,6 @@ public class PageView extends View implements
 			int maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
 			scroller.forceFinished(true);
 			scroller.fling(scrollX, scrollY, (int)-dx, (int)-dy, 0, maxX, 0, maxY);
-			showLinks = false;
 			invalidate();
 		}
 		return true;
@@ -188,7 +183,6 @@ public class PageView extends View implements
 			scrollX = (int)(pageFocusX * viewScale - focusX);
 			scrollY = (int)(pageFocusY * viewScale - focusY);
 			scroller.forceFinished(true);
-			showLinks = false;
 			invalidate();
 		}
 		return true;
