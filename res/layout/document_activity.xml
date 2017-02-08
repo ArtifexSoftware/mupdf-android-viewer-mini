@@ -6,7 +6,6 @@
 	<com.artifex.mupdf.mini.PageView android:id="@+id/page_view"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"
-			android:scaleType="center"
 			android:background="#505050"
 			android:keepScreenOn="true"
 			/>
@@ -18,7 +17,7 @@
 			android:background="#303030"
 			>
 		<TextView android:id="@+id/title_label"
-				android:layout_width="wrap_content"
+				android:layout_width="0dp"
 				android:layout_height="wrap_content"
 				android:layout_gravity="center"
 				android:layout_weight="1"
@@ -64,7 +63,7 @@
 				android:textColor="#FFFFFF"
 				android:singleLine="true"
 				android:ellipsize="end"
-				android:gravity="center_vertical|right"
+				android:gravity="right"
 				android:textSize="16dp"
 				android:padding="8dp"
 				android:text="- / -"

@@ -193,7 +193,7 @@ public class DocumentActivity extends Activity
 			public void work() {
 				try {
 					Log.i(APP, "load document");
-					doc = new Document(path);
+					doc = Document.openDocument(path);
 					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
 					if (metaTitle != null)
 						title = metaTitle;

@@ -1,7 +1,6 @@
 package com.artifex.mupdf.mini;
 
 import com.artifex.mupdf.fitz.*;
-import com.artifex.mupdf.fitz.android.*;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -23,7 +22,6 @@ public class PageView extends View implements
 
 	protected float viewScale, minScale, maxScale;
 	protected Bitmap bitmap;
-	protected Page page;
 	protected int bitmapW, bitmapH;
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
@@ -108,8 +106,7 @@ public class PageView extends View implements
 		return true;
 	}
 
-	public void onShowPress(MotionEvent e) {
-	}
+	public void onShowPress(MotionEvent e) { }
 
 	public void onLongPress(MotionEvent e) {
 		showLinks = !showLinks;
@@ -128,7 +125,6 @@ public class PageView extends View implements
 			for (Link link : links) {
 				Rect b = link.bounds;
 				if (mx >= b.x0 && mx <= b.x1 && my >= b.y0 && my <= b.y1) {
-					System.out.println("hit link " + link.page + " " + link.uri);
 					if (link.page >= 0)
 						actionListener.gotoPage(link.page);
 					else if (link.uri != null)
