@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 		package="com.artifex.mupdf.mini"
-		android:versionCode="1102"
+		android:versionCode="11020"
 		android:versionName="1.10 (git)">
 	<uses-sdk android:minSdkVersion="16" android:targetSdkVersion="21" />
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -21,6 +21,7 @@
 			<intent-filter>
 				<action android:name="android.intent.action.VIEW" />
 				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="file" />
 				<data android:mimeType="application/pdf" />
 				<data android:mimeType="application/vnd.ms-xpsdocument" />
@@ -32,6 +33,7 @@
 			<intent-filter>
 				<action android:name="android.intent.action.VIEW" />
 				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="file" />
 				<data android:pathPattern=".*\\.pdf" />
 				<data android:pathPattern=".*\\.xps" />

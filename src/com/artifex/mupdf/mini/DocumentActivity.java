@@ -149,28 +149,6 @@ public class DocumentActivity extends Activity
 		});
 	}
 
-	public void onPause() {
-		super.onPause();
-		SharedPreferences.Editor editor = prefs.edit();
-		editor.putFloat("layoutEm", layoutEm);
-		editor.putInt(path, currentPage);
-		editor.commit();
-	}
-
-	public void onActivityResult(int request, int result, Intent data) {
-		if (request == NAVIGATE_REQUEST && result >= RESULT_FIRST_USER)
-			gotoPage(result - RESULT_FIRST_USER);
-	}
-
-	public void onBackPressed() {
-		if (history.empty()) {
-			super.onBackPressed();
-		} else {
-			currentPage = history.pop();
-			loadPage();
-		}
-	}
-
 	public void onPageViewSizeChanged(int w, int h) {
 		canvasW = w;
 		canvasH = h;
@@ -186,6 +164,28 @@ public class DocumentActivity extends Activity
 		} else {
 			loadPage();
 		}
+	}
+
+	public void onPause() {
+		super.onPause();
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putFloat("layoutEm", layoutEm);
+		editor.putInt(path, currentPage);
+		editor.commit();
+	}
+
+	public void onBackPressed() {
+		if (history.empty()) {
+			super.onBackPressed();
+		} else {
+			currentPage = history.pop();
+			loadPage();
+		}
+	}
+
+	public void onActivityResult(int request, int result, Intent data) {
+		if (request == NAVIGATE_REQUEST && result >= RESULT_FIRST_USER)
+			gotoPage(result - RESULT_FIRST_USER);
 	}
 
 	protected void loadDocument() {

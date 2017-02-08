@@ -21,20 +21,20 @@ public class LibraryActivity extends ListActivity
 	protected final int UPDATE_DELAY = 5000;
 
 	protected File topDirectory, currentDirectory;
-	protected ArrayAdapter<LibraryItem> adapter;
+	protected ArrayAdapter<Item> adapter;
 	protected Timer updateTimer;
 
-	protected static class LibraryItem {
+	protected static class Item {
 		public File file;
 		public String string;
-		public LibraryItem(File file) {
+		public Item(File file) {
 			this.file = file;
 			if (file.isDirectory())
 				string = file.getName() + "/";
 			else
 				string = file.getName();
 		}
-		public LibraryItem(File file, String string) {
+		public Item(File file, String string) {
 			this.file = file;
 			this.string = string;
 		}
@@ -56,7 +56,7 @@ public class LibraryActivity extends ListActivity
 		topDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 		currentDirectory = topDirectory;
 
-		adapter = new ArrayAdapter<LibraryItem>(this, android.R.layout.simple_list_item_1);
+		adapter = new ArrayAdapter<Item>(this, android.R.layout.simple_list_item_1);
 		setListAdapter(adapter);
 	}
 
@@ -86,13 +86,13 @@ public class LibraryActivity extends ListActivity
 
 		if (!isExternalStorageReadable()) {
 			setTitle(R.string.app_name);
-			adapter.add(new LibraryItem(topDirectory, getString(R.string.library_no_external_storage)));
+			adapter.add(new Item(topDirectory, getString(R.string.library_no_external_storage)));
 			return;
 		}
 
 		if (!currentDirectory.isDirectory()) {
 			setTitle(R.string.app_name);
-			adapter.add(new LibraryItem(topDirectory, getString(R.string.library_not_a_directory)));
+			adapter.add(new Item(topDirectory, getString(R.string.library_not_a_directory)));
 			return;
 		}
 
@@ -104,7 +104,7 @@ public class LibraryActivity extends ListActivity
 
 		File parent = currentDirectory.getParentFile();
 		if (parent != null && !currentDirectory.equals(topDirectory))
-			adapter.add(new LibraryItem(parent, "../"));
+			adapter.add(new Item(parent, "../"));
 
 		File[] files = currentDirectory.listFiles(new FileFilter() {
 			public boolean accept(File file) {
@@ -120,13 +120,13 @@ public class LibraryActivity extends ListActivity
 		});
 
 		if (files == null)
-			adapter.add(new LibraryItem(topDirectory, getString(R.string.library_permission_denied)));
+			adapter.add(new Item(topDirectory, getString(R.string.library_permission_denied)));
 		else
 			for (File file : files)
-				adapter.add(new LibraryItem(file));
+				adapter.add(new Item(file));
 
-		adapter.sort(new Comparator<LibraryItem>() {
-			public int compare(LibraryItem a, LibraryItem b) {
+		adapter.sort(new Comparator<Item>() {
+			public int compare(Item a, Item b) {
 				boolean ad = a.file.isDirectory();
 				boolean bd = b.file.isDirectory();
 				if (ad && !bd) return -1;
@@ -139,7 +139,7 @@ public class LibraryActivity extends ListActivity
 	}
 
 	protected void onListItemClick(ListView l, View v, int position, long id) {
-		LibraryItem item = adapter.getItem(position);
+		Item item = adapter.getItem(position);
 
 		if (item.file.isDirectory()) {
 			currentDirectory = item.file;
