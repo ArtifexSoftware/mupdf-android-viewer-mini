@@ -54,8 +54,7 @@
 				android:layout_width="0dp"
 				android:layout_height="wrap_content"
 				android:layout_weight="1"
-				android:gravity="center"
-				android:padding="12dp"
+				android:layout_gravity="center"
 				android:max="0"
 				/>
 		<TextView android:id="@+id/page_label"
