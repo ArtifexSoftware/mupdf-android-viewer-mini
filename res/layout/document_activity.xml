@@ -15,6 +15,7 @@
 			android:layout_alignParentTop="true"
 			android:orientation="horizontal"
 			android:background="#303030"
+			android:visibility="gone"
 			>
 		<TextView android:id="@+id/title_label"
 				android:layout_width="0dp"
@@ -48,6 +49,7 @@
 			android:layout_alignParentBottom="true"
 			android:orientation="horizontal"
 			android:background="#303030"
+			android:visibility="gone"
 			>
 		<SeekBar android:id="@+id/page_seekbar"
 				android:layout_width="0dp"
