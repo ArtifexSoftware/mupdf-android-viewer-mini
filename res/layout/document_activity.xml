@@ -28,6 +28,12 @@
 				android:ellipsize="end"
 				android:textSize="16dp"
 				/>
+		<Button android:id="@+id/search_button"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:text="@string/button_search"
+				/>
 		<Button android:id="@+id/layout_button"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
@@ -41,6 +47,40 @@
 				android:layout_gravity="center"
 				android:text="@string/button_outline"
 				android:visibility="gone"
+				/>
+	</LinearLayout>
+	<LinearLayout android:id="@+id/search_bar"
+			android:layout_width="match_parent"
+			android:layout_height="48dp"
+			android:layout_below="@id/action_bar"
+			android:orientation="horizontal"
+			android:background="#303030"
+			android:visibility="gone"
+			>
+		<EditText android:id="@+id/search_text"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:layout_weight="1"
+				android:layout_marginLeft="8dp"
+				android:textColor="#FFFFFF"
+				android:singleLine="true"
+				android:textSize="16dp"
+				android:hint="@string/text_search_hint"
+				android:inputType="text"
+				android:imeOptions="actionSearch"
+				/>
+		<Button android:id="@+id/search_backward_button"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:text="@string/button_search_backward"
+				/>
+		<Button android:id="@+id/search_forward_button"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:text="@string/button_search_forward"
 				/>
 	</LinearLayout>
 	<LinearLayout android:id="@+id/navigation_bar"

@@ -6,7 +6,11 @@
 	<string name="library_permission_denied">[permission denied]</string>
 	<string name="button_outline">Outline</string>
 	<string name="button_layout">Layout</string>
+	<string name="button_search">Search</string>
+	<string name="button_search_backward">&lt;</string>
+	<string name="button_search_forward">&gt;</string>
 	<string name="dlog_password_title">Password:</string>
 	<string name="dlog_password_message">The document is encrypted.</string>
 	<string name="dlog_password_retry">Invalid password.</string>
+	<string name="text_search_hint">Search...</string>
 </resources>

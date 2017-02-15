@@ -26,6 +26,7 @@ public class PageView extends View implements
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
 	protected Link[] links;
+	protected Rect[] hits;
 	protected boolean showLinks;
 
 	protected GestureDetector detector;
@@ -35,6 +36,7 @@ public class PageView extends View implements
 	protected Paint errorPaint;
 	protected Path errorPath;
 	protected Paint linkPaint;
+	protected Paint hitPaint;
 
 	public PageView(Context ctx, AttributeSet atts) {
 		super(ctx, atts);
@@ -49,6 +51,9 @@ public class PageView extends View implements
 
 		linkPaint = new Paint();
 		linkPaint.setARGB(32, 0, 0, 255);
+
+		hitPaint = new Paint();
+		hitPaint.setARGB(32, 255, 0, 0);
 
 		errorPaint = new Paint();
 		errorPaint.setARGB(255, 255, 80, 80);
@@ -71,21 +76,28 @@ public class PageView extends View implements
 			bitmap.recycle();
 		error = true;
 		links = null;
+		hits = null;
 		bitmap = null;
 		invalidate();
 	}
 
-	public void setBitmap(Bitmap b, boolean wentBack, Link[] ls) {
+	public void setBitmap(Bitmap b, boolean wentBack, Link[] ls, Rect[] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
 		links = ls;
+		hits = hs;
 		bitmap = b;
 		bitmapW = (int)(bitmap.getWidth() * viewScale);
 		bitmapH = (int)(bitmap.getHeight() * viewScale);
 		scroller.forceFinished(true);
 		scrollX = wentBack ? bitmapW - canvasW : 0;
 		scrollY = wentBack ? bitmapH - canvasH : 0;
+		invalidate();
+	}
+
+	public void resetHits() {
+		hits = null;
 		invalidate();
 	}
 
@@ -257,11 +269,15 @@ public class PageView extends View implements
 		canvas.scale(viewScale, viewScale);
 		canvas.drawBitmap(bitmap, 0, 0, null);
 
-		if (showLinks && links != null) {
+		if (showLinks && links != null && links.length > 0) {
 			for (Link link : links) {
 				Rect b = link.bounds;
 				canvas.drawRect(b.x0, b.y0, b.x1, b.y1, linkPaint);
 			}
 		}
+
+		if (hits != null && hits.length > 0)
+			for (Rect b : hits)
+				canvas.drawRect(b.x0, b.y0, b.x1, b.y1, hitPaint);
 	}
 }

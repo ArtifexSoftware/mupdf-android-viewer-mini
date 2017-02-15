@@ -12,14 +12,18 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.method.PasswordTransformationMethod;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.SeekBar;
@@ -59,6 +63,11 @@ public class DocumentActivity extends Activity
 	protected PageView pageView;
 	protected View actionBar;
 	protected TextView titleLabel;
+	protected View searchButton;
+	protected View searchBar;
+	protected EditText searchText;
+	protected View searchBackwardButton;
+	protected View searchForwardButton;
 	protected View layoutButton;
 	protected PopupMenu layoutPopupMenu;
 	protected View outlineButton;
@@ -68,6 +77,9 @@ public class DocumentActivity extends Activity
 
 	protected int pageCount;
 	protected int currentPage;
+	protected int searchHitPage;
+	protected String searchNeedle;
+	protected boolean stopSearch;
 	protected Stack<Integer> history;
 	protected boolean wentBack;
 
@@ -82,6 +94,7 @@ public class DocumentActivity extends Activity
 
 		setContentView(R.layout.document_activity);
 		actionBar = findViewById(R.id.action_bar);
+		searchBar = findViewById(R.id.search_bar);
 		navigationBar = findViewById(R.id.navigation_bar);
 
 		Uri uri = getIntent().getData();
@@ -118,6 +131,7 @@ public class DocumentActivity extends Activity
 		prefs = getPreferences(Context.MODE_PRIVATE);
 		layoutEm = prefs.getFloat("layoutEm", 8);
 		currentPage = prefs.getInt(key, 0);
+		searchHitPage = -1;
 		hasLoaded = false;
 
 		pageView = (PageView)findViewById(R.id.page_view);
@@ -139,7 +153,53 @@ public class DocumentActivity extends Activity
 			}
 		});
 
-		outlineButton = (View)findViewById(R.id.outline_button);
+		searchButton = findViewById(R.id.search_button);
+		searchButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				if (searchBar.getVisibility() == View.GONE) {
+					searchBar.setVisibility(View.VISIBLE);
+					searchBar.requestFocus();
+					showKeyboard();
+				} else {
+					hideSearch();
+				}
+			}
+		});
+		searchText = (EditText)findViewById(R.id.search_text);
+		searchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+				if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_DOWN) {
+					search(1);
+					return true;
+				}
+				if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+					search(1);
+					return true;
+				}
+				return false;
+			}
+		});
+		searchText.addTextChangedListener(new TextWatcher() {
+			public void afterTextChanged(Editable s) {}
+			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+			public void onTextChanged(CharSequence s, int start, int before, int count) {
+				resetSearch();
+			}
+		});
+		searchBackwardButton = findViewById(R.id.search_backward_button);
+		searchBackwardButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				search(-1);
+			}
+		});
+		searchForwardButton = findViewById(R.id.search_forward_button);
+		searchForwardButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				search(1);
+			}
+		});
+
+		outlineButton = findViewById(R.id.outline_button);
 		outlineButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
 				Intent intent = new Intent(DocumentActivity.this, OutlineActivity.class);
@@ -151,7 +211,7 @@ public class DocumentActivity extends Activity
 			}
 		});
 
-		layoutButton = (View)findViewById(R.id.layout_button);
+		layoutButton = findViewById(R.id.layout_button);
 		layoutPopupMenu = new PopupMenu(this, layoutButton);
 		layoutPopupMenu.getMenuInflater().inflate(R.menu.layout_menu, layoutPopupMenu.getMenu());
 		layoutPopupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -282,6 +342,82 @@ public class DocumentActivity extends Activity
 			gotoPage(result - RESULT_FIRST_USER);
 	}
 
+	protected void showKeyboard() {
+		InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+		if (imm != null)
+			imm.showSoftInput(searchText, 0);
+	}
+
+	protected void hideKeyboard() {
+		InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+		if (imm != null)
+			imm.hideSoftInputFromWindow(searchText.getWindowToken(), 0);
+	}
+
+	protected void resetSearch() {
+		stopSearch = true;
+		searchHitPage = -1;
+		searchNeedle = null;
+		pageView.resetHits();
+	}
+
+	protected void hideSearch() {
+		searchBar.setVisibility(View.GONE);
+		hideKeyboard();
+		resetSearch();
+	}
+
+	protected void runSearch(final int startPage, final int direction, final String needle) {
+		stopSearch = false;
+		worker.add(new Worker.Task() {
+			int searchPage = startPage;
+			public void work() {
+				if (stopSearch || needle != searchNeedle) return;
+				Log.i(APP, "search page " + searchPage);
+				Page page = doc.loadPage(searchPage);
+				Rect[] hits = page.search(searchNeedle);
+				page.destroy();
+				if (hits != null && hits.length > 0)
+					searchHitPage = searchPage;
+			}
+			public void run() {
+				if (stopSearch || needle != searchNeedle) {
+					pageLabel.setText((currentPage+1) + " / " + pageCount);
+				} else if (searchHitPage == currentPage) {
+					loadPage();
+				} else if (searchHitPage >= 0) {
+					history.push(currentPage);
+					currentPage = searchHitPage;
+					loadPage();
+				} else {
+					searchPage += direction;
+					if (searchPage >= 0 && searchPage < pageCount) {
+						pageLabel.setText((searchPage+1) + " / " + pageCount);
+						worker.add(this);
+					} else {
+						pageLabel.setText((currentPage+1) + " / " + pageCount);
+					}
+				}
+			}
+		});
+	}
+
+	protected void search(int direction) {
+		hideKeyboard();
+		int startPage;
+		if (searchHitPage == currentPage)
+			startPage = currentPage + direction;
+		else
+			startPage = currentPage;
+		searchHitPage = -1;
+		searchNeedle = searchText.getText().toString();
+		if (searchNeedle.length() == 0)
+			searchNeedle = null;
+		if (searchNeedle != null)
+			if (startPage >= 0 && startPage < pageCount)
+				runSearch(startPage, direction, searchNeedle);
+	}
+
 	protected void loadDocument() {
 		worker.add(new Worker.Task() {
 			public void work() {
@@ -366,23 +502,35 @@ public class DocumentActivity extends Activity
 
 	protected void loadPage() {
 		final int pageNumber = currentPage;
+		stopSearch = true;
 		worker.add(new Worker.Task() {
 			public Bitmap bitmap;
 			public Link[] links;
+			public Rect[] hits;
 			public void work() {
-				Log.i(APP, "load page " + pageNumber);
-				Page page = doc.loadPage(pageNumber);
-				Log.i(APP, "draw page " + pageNumber);
-				Matrix ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
-				bitmap = AndroidDrawDevice.drawPage(page, ctm);
-				links = page.getLinks();
-				if (links != null)
-					for (Link link : links)
-						link.bounds.transform(ctm);
+				try {
+					Log.i(APP, "load page " + pageNumber);
+					Page page = doc.loadPage(pageNumber);
+					Log.i(APP, "draw page " + pageNumber);
+					Matrix ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
+					bitmap = AndroidDrawDevice.drawPage(page, ctm);
+					links = page.getLinks();
+					if (links != null)
+						for (Link link : links)
+							link.bounds.transform(ctm);
+					if (searchNeedle != null) {
+						hits = page.search(searchNeedle);
+						if (hits != null)
+							for (Rect hit : hits)
+								hit.transform(ctm);
+					}
+				} catch (Throwable x) {
+					Log.e(APP, x.getMessage());
+				}
 			}
 			public void run() {
 				if (bitmap != null)
-					pageView.setBitmap(bitmap, wentBack, links);
+					pageView.setBitmap(bitmap, wentBack, links, hits);
 				else
 					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
@@ -397,6 +545,7 @@ public class DocumentActivity extends Activity
 		if (actionBar.getVisibility() == View.VISIBLE) {
 			actionBar.setVisibility(View.GONE);
 			navigationBar.setVisibility(View.GONE);
+			hideSearch();
 		} else {
 			actionBar.setVisibility(View.VISIBLE);
 			navigationBar.setVisibility(View.VISIBLE);
