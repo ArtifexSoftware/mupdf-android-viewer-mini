@@ -147,6 +147,9 @@ public class LibraryActivity extends ListActivity
 			return;
 		}
 
+		if (!item.file.isFile())
+			return;
+
 		Intent intent = new Intent(this, DocumentActivity.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET); /* launch as a new document */
 		intent.setAction(Intent.ACTION_VIEW);
