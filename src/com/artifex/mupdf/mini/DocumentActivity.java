@@ -4,18 +4,23 @@ import com.artifex.mupdf.fitz.*;
 import com.artifex.mupdf.fitz.android.*;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.method.PasswordTransformationMethod;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -156,14 +161,72 @@ public class DocumentActivity extends Activity
 		layoutH = canvasH * 72 / displayDPI;
 		if (!hasLoaded) {
 			hasLoaded = true;
-			loadDocument();
-			loadPage();
-			loadOutline();
+			openDocument();
 		} else if (isReflowable) {
 			relayoutDocument();
 		} else {
 			loadPage();
 		}
+	}
+
+	protected void openDocument() {
+		worker.add(new Worker.Task() {
+			boolean needsPassword;
+			public void work() {
+				Log.i(APP, "open document");
+				doc = Document.openDocument(path);
+				needsPassword = doc.needsPassword();
+			}
+			public void run() {
+				if (needsPassword)
+					askPassword(R.string.dlog_password_message);
+				else
+					loadDocument();
+			}
+		});
+	}
+
+	protected void askPassword(int message) {
+		final EditText passwordView = new EditText(this);
+		passwordView.setInputType(EditorInfo.TYPE_TEXT_VARIATION_PASSWORD);
+		passwordView.setTransformationMethod(PasswordTransformationMethod.getInstance());
+
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle(R.string.dlog_password_title);
+		builder.setMessage(message);
+		builder.setView(passwordView);
+		builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				checkPassword(passwordView.getText().toString());
+			}
+		});
+		builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				finish();
+			}
+		});
+		builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+			public void onCancel(DialogInterface dialog) {
+				finish();
+			}
+		});
+		builder.create().show();
+	}
+
+	protected void checkPassword(final String password) {
+		worker.add(new Worker.Task() {
+			boolean passwordOkay;
+			public void work() {
+				Log.i(APP, "check password");
+				passwordOkay = doc.authenticatePassword(password);
+			}
+			public void run() {
+				if (passwordOkay)
+					loadDocument();
+				else
+					askPassword(R.string.dlog_password_retry);
+			}
+		});
 	}
 
 	public void onPause() {
@@ -193,7 +256,6 @@ public class DocumentActivity extends Activity
 			public void work() {
 				try {
 					Log.i(APP, "load document");
-					doc = Document.openDocument(path);
 					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
 					if (metaTitle != null)
 						title = metaTitle;
@@ -216,6 +278,8 @@ public class DocumentActivity extends Activity
 				titleLabel.setText(title);
 				if (isReflowable)
 					layoutButton.setVisibility(View.VISIBLE);
+				loadPage();
+				loadOutline();
 			}
 		});
 	}

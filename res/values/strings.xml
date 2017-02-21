@@ -6,4 +6,7 @@
 	<string name="library_permission_denied">[permission denied]</string>
 	<string name="button_outline">Outline</string>
 	<string name="button_layout">Layout</string>
+	<string name="dlog_password_title">Password:</string>
+	<string name="dlog_password_message">The document is encrypted.</string>
+	<string name="dlog_password_retry">Invalid password.</string>
 </resources>
