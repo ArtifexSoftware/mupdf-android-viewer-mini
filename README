@@ -47,12 +47,11 @@ Running
 -------
 
 To run the app in the android emulator, first you'll need to set up an
-"Android Virtual Device" for the emulator. Run "android" and in the dialog
-from the "Tools > Manage AVDs..." menu, create a new device. You can also use
-Android Studio to set up a virtual device. Use the x86 ABI for best emulator
-performance.
+"Android Virtual Device" for the emulator. Run "android avd" and create
+a new device. You can also use Android Studio to set up a virtual device.
+Use the x86 ABI for best emulator performance.
 
-Then launch the emulator, or connect an android device with USB debugging enabled:
+Then launch the emulator, or connect a device with USB debugging enabled:
 
 	$ emulator -avd MyVirtualDevice &
 
@@ -80,12 +79,13 @@ Do NOT use the com.artifex domain for your custom app!
 
 	$ mv src/com/artifex src/com/YourCompanyName
 
-Change all references to com.artifex.mupdf.mini into com.YourCompanyName.mupdf.mini
-in the Java source files and XML resources.
+Change all references to com.artifex.mupdf.mini into
+com.YourCompanyName.mupdf.mini in the Java source files and XML resources.
 
 In order to sign a release build, you will need to create a key and a key store.
 
-	$ keytool -genkey -v -keystore android.keystore -alias MyKey -validity 3650 -keysize 2048 -keyalg RSA
+	$ keytool -genkey -v -keystore android.keystore -alias MyKey \
+		-validity 3650 -keysize 2048 -keyalg RSA
 
 Then add the following entries to local.properties:
 

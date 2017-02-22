@@ -10,9 +10,9 @@ generate:
 	make -C libmupdf generate
 
 jni-debug: build.xml generate
-	ndk-build -j4 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-13 APP_ABI=$(APP_ABI) APP_OPTIM=debug
+	ndk-build -j4 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-16 APP_ABI=$(APP_ABI) APP_OPTIM=debug
 jni-release: build.xml generate
-	ndk-build -j4 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-13 APP_ABI=$(APP_ABI) APP_OPTIM=release
+	ndk-build -j4 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-16 APP_ABI=$(APP_ABI) APP_OPTIM=release
 
 debug: jni-debug
 	ant debug
