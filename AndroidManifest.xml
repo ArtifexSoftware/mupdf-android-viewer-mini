@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 		package="com.artifex.mupdf.mini"
-		android:versionCode="11020"
-		android:versionName="1.10 (git)">
+		android:versionCode="11100"
+		android:versionName="1.11 (git)">
 	<uses-sdk android:minSdkVersion="16" android:targetSdkVersion="21" />
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 	<application android:label="@string/app_name" android:icon="@drawable/ic_launcher">
