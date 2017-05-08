@@ -9,20 +9,19 @@ Prerequisites
 
 You need a working Android development environment, consisting of the Android
 SKD and the Android NDK. The easiest way is to use Android Studio to download
-and install the SDK and NDK. Make sure that the Android/Sdk/tools and
-Android/Sdk/ndk-bundle directories are on your path.
+and install the SDK and NDK. Make sure that the Android/Sdk/tools/bin,
+Android/Sdk/platform-tools, and Android/Sdk/ndk-bundle directories are on your
+path.
 
 You also need Oracle's Java JDK (OpenJDK is not compatible with Android).
-You also need the Apache Ant build system.
 You also need Git, GNU Make, and a C compiler.
 
 If everything is working, you should be able to run these commands
 from the command line:
 
-	Android SDK tools: android, emulator, and adb.
+	Android SDK tools: android-studio, emulator, and adb.
 	Android NDK tools: ndk-build.
 	Oracle Java JDK 8: java, and javac.
-	Apache Ant: ant.
 	Git: git.
 	GNU Make: make, or gmake.
 	C compiler: cc, gcc, or clang.
@@ -39,9 +38,15 @@ using make:
 
 	$ make
 
-The makefile will take care of setting up the android project and
-configuration files. This is of course assuming that you have set
-up the pre-requisites properly.
+You can also invoke the gradle wrapper manually, but then you need to run the
+generate step manually:
+
+	$ make -C libmupdf generate
+	$ ./gradlew assembleDebug
+
+The makefile will take care of building the generate step and invoking gradle
+with the appropriate tasks. This is of course assuming that you have set up the
+pre-requisites properly.
 
 Running
 -------
@@ -87,12 +92,12 @@ In order to sign a release build, you will need to create a key and a key store.
 	$ keytool -genkey -v -keystore android.keystore -alias MyKey \
 		-validity 3650 -keysize 2048 -keyalg RSA
 
-Then add the following entries to local.properties:
+Then add the following entries to gradle.properties:
 
-	key.store=android.keystore
-	key.store.password=<your keystore password>
-	key.alias=MyKey
-	key.alias.password=<your key password>
+	RELEASE_KEY_STORE=android.keystore
+	RELEASE_KEY_STORE_PASSWORD=<your keystore password>
+	RELEASE_KEY_ALIAS=MyKey
+	RELEASE_KEY_ALIAS_PASSWORD=<your key password>
 
 If your keystore has been set up properly, you can now build a release APK.
 

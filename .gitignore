@@ -1,9 +1,8 @@
+/.externalNativeBuild
+/.gradle
+/.idea
 /android.keystore
-/build.xml
+/build
+/gradle.properties
 /local.properties
-/proguard-project.txt
-/project.properties
-/bin
-/gen
-/libs
-/obj
+/mupdf-android-viewer-mini.iml

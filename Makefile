@@ -1,31 +1,26 @@
-default: debug
-install: install-debug
+assemble: assembleDebug
+install: installDebug
 
-APP_ABI ?= x86,armeabi-v7a
-
-build.xml:
-	android update project -p . -t android-21 -n "MuPDF mini"
+ANDROID_HOME := $(shell which adb | sed 's,/platform-tools/adb,,')
 
 generate:
-	make -C libmupdf generate
+	make -j4 -C libmupdf generate
 
-jni-debug: build.xml generate
-	ndk-build -j4 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-16 APP_ABI=$(APP_ABI) APP_OPTIM=debug
-jni-release: build.xml generate
-	ndk-build -j4 APP_BUILD_SCRIPT=libmupdf/platform/java/Android.mk APP_PROJECT_PATH=. APP_PLATFORM=android-16 APP_ABI=$(APP_ABI) APP_OPTIM=release
+assembleDebug: generate
+	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleDebug
+assembleRelease: generate
+	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleRelease
+installDebug: generate
+	ANDROID_HOME=$(ANDROID_HOME) ./gradlew installDebug
 
-debug: jni-debug
-	ant debug
-release: jni-release
-	ant release
-install-debug: jni-debug
-	ant debug install
-install-release: jni-release
-	ant release install
-
-run: install-debug
+run: installDebug
 	adb shell am start -n com.artifex.mupdf.mini/.LibraryActivity
 
+lint: generate
+	ANDROID_HOME=$(ANDROID_HOME) ./gradlew lint
+
 clean:
-	rm -f build.xml
-	rm -rf bin gen libs obj
+	ANDROID_HOME=$(ANDROID_HOME) ./gradlew clean
+distclean: clean
+	make -C libmupdf nuke
+	rm -rf .externalNativeBuild/ .gradle/ .idea/ build/ local.properties mupdf-android-viewer-mini.iml

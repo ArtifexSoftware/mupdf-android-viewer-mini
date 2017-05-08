@@ -1,0 +1,73 @@
+apply plugin: 'com.android.application'
+
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.android.tools.build:gradle:2.3.1'
+	}
+}
+
+android {
+	compileSdkVersion 16
+	buildToolsVersion '25.0.3'
+
+	defaultConfig {
+		minSdkVersion 16
+		targetSdkVersion 16
+		ndk.abiFilters 'armeabi-v7a', 'x86'
+		externalNativeBuild.ndkBuild.arguments '-j4'
+	}
+
+	compileOptions {
+		sourceCompatibility '1.7'
+		targetCompatibility '1.7'
+	}
+
+	lintOptions {
+		abortOnError false
+	}
+
+	tasks.withType(JavaCompile) {
+		options.compilerArgs << '-Xlint:deprecation' << '-Xlint:unchecked'
+	}
+
+	sourceSets {
+		main {
+			manifest.srcFile 'AndroidManifest.xml'
+			java.srcDirs 'src', 'libmupdf/platform/java/src'
+			res.srcDirs 'res'
+		}
+	}
+
+	externalNativeBuild {
+		ndkBuild.path 'libmupdf/platform/java/Android.mk'
+	}
+
+	splits {
+		abi {
+			enable true
+			reset()
+			include 'armeabi-v7a', 'x86'
+			universalApk false
+		}
+	}
+
+	if (project.hasProperty('RELEASE_KEY_STORE')) {
+		signingConfigs {
+			release {
+				storeFile file(RELEASE_KEY_STORE)
+				storePassword RELEASE_KEY_STORE_PASSWORD
+				keyAlias RELEASE_KEY_ALIAS
+				keyPassword RELEASE_KEY_ALIAS_PASSWORD
+			}
+		}
+
+		buildTypes {
+			release {
+				signingConfig signingConfigs.release
+			}
+		}
+	}
+}
