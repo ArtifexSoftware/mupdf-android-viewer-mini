@@ -1,5 +1,7 @@
 package com.artifex.mupdf.mini;
 
+import com.artifex.mupdf.fitz.Document; /* for file name recognition */
+
 import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Intent;
@@ -112,13 +114,7 @@ public class LibraryActivity extends ListActivity
 		File[] files = currentDirectory.listFiles(new FileFilter() {
 			public boolean accept(File file) {
 				if (file.isDirectory()) return true;
-				String suffix = file.getName().toLowerCase();
-				if (suffix.endsWith(".pdf")) return true;
-				if (suffix.endsWith(".xps")) return true;
-				if (suffix.endsWith(".cbz")) return true;
-				if (suffix.endsWith(".epub")) return true;
-				if (suffix.endsWith(".fb2")) return true;
-				return false;
+				return Document.recognize(file.getName());
 			}
 		});
 
