@@ -27,6 +27,9 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Stack;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public class DocumentActivity extends Activity
 {
@@ -38,7 +41,12 @@ public class DocumentActivity extends Activity
 	protected SharedPreferences prefs;
 
 	protected Document doc;
+
+	protected String key;
 	protected String path;
+	protected String mimetype;
+	protected byte[] buffer;
+
 	protected boolean hasLoaded;
 	protected boolean isReflowable;
 	protected String title;
@@ -75,10 +83,28 @@ public class DocumentActivity extends Activity
 		actionBar = findViewById(R.id.action_bar);
 		navigationBar = findViewById(R.id.navigation_bar);
 
-		/* Note: we only support file:// URIs. Supporting content:// will be trickier. */
-		path = getIntent().getData().getPath();
+		Uri uri = getIntent().getData();
+		mimetype = getIntent().getType();
+		key = uri.toString();
+		if (uri.getScheme().equals("file")) {
+			title = uri.getLastPathSegment();
+			path = uri.getPath();
+		} else {
+			title = uri.toString();
+			try {
+				InputStream stm = getContentResolver().openInputStream(uri);
+				ByteArrayOutputStream out = new ByteArrayOutputStream();
+				byte[] buf = new byte[16384];
+				int n;
+				while ((n = stm.read(buf)) != -1)
+					out.write(buf, 0, n);
+				out.flush();
+				buffer = out.toByteArray();
+			} catch (IOException x) {
+				Log.e(APP, x.toString());
+			}
+		}
 
-		title = path.substring(path.lastIndexOf('/') + 1);
 		titleLabel = (TextView)findViewById(R.id.title_label);
 		titleLabel.setText(title);
 
@@ -89,7 +115,7 @@ public class DocumentActivity extends Activity
 
 		prefs = getPreferences(Context.MODE_PRIVATE);
 		layoutEm = prefs.getFloat("layoutEm", 8);
-		currentPage = prefs.getInt(path, 0);
+		currentPage = prefs.getInt(key, 0);
 		hasLoaded = false;
 
 		pageView = (PageView)findViewById(R.id.page_view);
@@ -174,7 +200,10 @@ public class DocumentActivity extends Activity
 			boolean needsPassword;
 			public void work() {
 				Log.i(APP, "open document");
-				doc = Document.openDocument(path);
+				if (path != null)
+					doc = Document.openDocument(path);
+				else
+					doc = Document.openDocument(buffer, mimetype);
 				needsPassword = doc.needsPassword();
 			}
 			public void run() {
@@ -233,7 +262,7 @@ public class DocumentActivity extends Activity
 		super.onPause();
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putFloat("layoutEm", layoutEm);
-		editor.putInt(path, currentPage);
+		editor.putInt(key, currentPage);
 		editor.commit();
 	}
 
