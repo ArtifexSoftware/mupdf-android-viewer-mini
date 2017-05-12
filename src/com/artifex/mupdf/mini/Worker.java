@@ -2,6 +2,7 @@ package com.artifex.mupdf.mini;
 
 import android.app.Activity;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -44,8 +45,13 @@ public class Worker implements Runnable
 				Task task = queue.take();
 				task.work();
 				activity.runOnUiThread(task);
-			} catch (Throwable x) {
+			} catch (final Throwable x) {
 				Log.e("MuPDF Worker", x.getMessage());
+				activity.runOnUiThread(new Runnable() {
+					public void run() {
+						Toast.makeText(activity, x.getMessage(), Toast.LENGTH_SHORT).show();
+					}
+				});
 			}
 		}
 	}

@@ -24,6 +24,7 @@ import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Stack;
@@ -102,6 +103,7 @@ public class DocumentActivity extends Activity
 				buffer = out.toByteArray();
 			} catch (IOException x) {
 				Log.e(APP, x.toString());
+				Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
 			}
 		}
 
@@ -295,10 +297,10 @@ public class DocumentActivity extends Activity
 					}
 					pageCount = doc.countPages();
 				} catch (Throwable x) {
-					Log.e(APP, x.getMessage());
 					doc = null;
 					pageCount = 1;
 					currentPage = 0;
+					throw x;
 				}
 			}
 			public void run() {
@@ -323,9 +325,9 @@ public class DocumentActivity extends Activity
 					pageCount = doc.countPages();
 					currentPage = doc.findBookmark(mark);
 				} catch (Throwable x) {
-					Log.e(APP, x.getMessage());
 					pageCount = 1;
 					currentPage = 0;
+					throw x;
 				}
 			}
 			public void run() {
@@ -368,19 +370,15 @@ public class DocumentActivity extends Activity
 			public Bitmap bitmap;
 			public Link[] links;
 			public void work() {
-				try {
-					Log.i(APP, "load page " + pageNumber);
-					Page page = doc.loadPage(pageNumber);
-					Log.i(APP, "draw page " + pageNumber);
-					Matrix ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
-					bitmap = AndroidDrawDevice.drawPage(page, ctm);
-					links = page.getLinks();
-					if (links != null)
-						for (Link link : links)
-							link.bounds.transform(ctm);
-				} catch (Throwable x) {
-					Log.e(APP, x.getMessage());
-				}
+				Log.i(APP, "load page " + pageNumber);
+				Page page = doc.loadPage(pageNumber);
+				Log.i(APP, "draw page " + pageNumber);
+				Matrix ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
+				bitmap = AndroidDrawDevice.drawPage(page, ctm);
+				links = page.getLinks();
+				if (links != null)
+					for (Link link : links)
+						link.bounds.transform(ctm);
 			}
 			public void run() {
 				if (bitmap != null)
@@ -434,6 +432,7 @@ public class DocumentActivity extends Activity
 			startActivity(intent);
 		} catch (Throwable x) {
 			Log.e(APP, x.getMessage());
+			Toast.makeText(DocumentActivity.this, x.getMessage(), Toast.LENGTH_SHORT).show();
 		}
 	}
 }
