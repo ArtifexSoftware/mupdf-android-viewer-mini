@@ -13,11 +13,15 @@ android {
 	compileSdkVersion 16
 	buildToolsVersion '25.0.3'
 
+	def abiVersionOffsets = ['arm64-v8':1, 'armeabi':2, 'armeabi-v7a':3, 'mips':4, 'mips64':5, 'x86':6, 'x86_64':7]
+
 	defaultConfig {
 		minSdkVersion 16
 		targetSdkVersion 16
 		ndk.abiFilters 'armeabi-v7a', 'x86'
 		externalNativeBuild.ndkBuild.arguments '-j4'
+		versionName '1.11 (git)'
+		versionCode 11100
 	}
 
 	compileOptions {
@@ -67,6 +71,15 @@ android {
 		buildTypes {
 			release {
 				signingConfig signingConfigs.release
+			}
+		}
+	}
+
+	applicationVariants.all { variant ->
+		variant.outputs.each { output ->
+			def abiVersionOffset = abiVersionOffsets.get(output.getFilter(com.android.build.OutputFile.ABI))
+			if (abiVersionOffset != null) {
+				output.versionCodeOverride = variant.versionCode + abiVersionOffset
 			}
 		}
 	}
