@@ -1,19 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 		package="com.artifex.mupdf.mini">
-	<uses-sdk android:minSdkVersion="16" android:targetSdkVersion="21" />
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-	<application android:label="@string/app_name" android:icon="@drawable/ic_launcher">
-		<activity android:name=".LibraryActivity"
-				android:configChanges="orientation|screenSize|keyboardHidden"
-				>
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
-		</activity>
+	<application>
 		<activity android:name=".DocumentActivity"
-				android:label="@string/app_name"
+				android:label="MuPDF mini"
 				android:configChanges="orientation|screenSize|keyboardHidden"
 				>
 			<intent-filter>

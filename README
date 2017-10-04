@@ -9,44 +9,44 @@ Prerequisites
 
 You need a working Android development environment, consisting of the Android
 SKD and the Android NDK. The easiest way is to use Android Studio to download
-and install the SDK and NDK. Make sure that the Android/Sdk/tools/bin,
-Android/Sdk/platform-tools, and Android/Sdk/ndk-bundle directories are on your
-path.
-
-You also need Oracle's Java JDK (OpenJDK is not compatible with Android).
-You also need Git, GNU Make, and a C compiler.
-
-If everything is working, you should be able to run these commands
-from the command line:
-
-	Android SDK tools: android-studio, emulator, and adb.
-	Android NDK tools: ndk-build.
-	Oracle Java JDK 8: java, and javac.
-	Git: git.
-	GNU Make: make, or gmake.
-	C compiler: cc, gcc, or clang.
+and install the SDK and NDK.
 
 Building
 --------
 
-Download the project using Git (and don't forget the --recursive flag):
+Download the project using Git:
 
-	$ git clone --recursive git://git.ghostscript.com/mupdf-android-viewer-mini.git
+	$ git clone git://git.ghostscript.com/mupdf-android-viewer-mini.git
+
+Edit the local.properties file to point to your Android SDK directory:
+
+	$ echo sdk.dir=$HOME/Android/Sdk > local.properties
 
 If all tools have been installed as per the prerequisites, build the app
-using make:
+using the gradle wrapper:
 
-	$ make
-
-You can also invoke the gradle wrapper manually, but then you need to run the
-generate step manually:
-
-	$ make -C libmupdf generate
 	$ ./gradlew assembleDebug
 
-The makefile will take care of building the generate step and invoking gradle
-with the appropriate tasks. This is of course assuming that you have set up the
-pre-requisites properly.
+Building JNI
+------------
+
+The default is to use the binary JNI library from the Ghostscript Maven repository.
+
+If you want to build the JNI code yourself, you will need
+to check out the 'jni' submodule recursively. You will also need a working 
+host development environment with a C compiler and GNU Make.
+
+Either clone the original project with the --recursive flag, or do it manually:
+
+	mupdf-mini $ git submodule update --init
+	mupdf-mini $ cd jni
+	mupdf-mini/jni $ git submodule update --init
+	mupdf-mini/jni $ cd libmupdf
+	mupdf-mini/jni/libmupdf $ git submodule update --init
+
+Then you need to run the 'make generate' step in the libmupdf directory:
+
+	mupdf-mini/jni/libmupdf $ make generate
 
 Running
 -------
@@ -66,11 +66,11 @@ Then copy some test files to the device:
 
 Then install the app on the device:
 
-	$ make install
+	$ ./gradlew installDebug
 
-In order to build, install, and launch the app in one step:
+To start the installed app on the device:
 
-	$ make run
+	$ adb shell am start -n com.artifex.mupdf.mini.app/.LibraryActivity
 
 To see the error and debugging message log:
 
@@ -79,28 +79,24 @@ To see the error and debugging message log:
 Release
 -------
 
-To release you MUST first change the package name.
+To release you MUST first change the package name!
+
 Do NOT use the com.artifex domain for your custom app!
-
-	$ mv src/com/artifex src/com/YourCompanyName
-
-Change all references to com.artifex.mupdf.mini into
-com.YourCompanyName.mupdf.mini in the Java source files and XML resources.
 
 In order to sign a release build, you will need to create a key and a key store.
 
 	$ keytool -genkey -v -keystore android.keystore -alias MyKey \
 		-validity 3650 -keysize 2048 -keyalg RSA
 
-Then add the following entries to gradle.properties:
+Then add the following entries to app/gradle.properties:
 
-	RELEASE_KEY_STORE=android.keystore
-	RELEASE_KEY_STORE_PASSWORD=<your keystore password>
-	RELEASE_KEY_ALIAS=MyKey
-	RELEASE_KEY_ALIAS_PASSWORD=<your key password>
+	release_storeFile=android.keystore
+	release_storePassword=<your keystore password>
+	release_keyAlias=MyKey
+	release_keyPassword=<your key password>
 
 If your keystore has been set up properly, you can now build a release APK.
 
-	$ make release
+	$ ./gradlew assembleRelease
 
 Good Luck!

@@ -217,19 +217,18 @@ public class DocumentActivity extends Activity
 		layoutPopupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
 			public boolean onMenuItemClick(MenuItem item) {
 				float oldLayoutEm = layoutEm;
-				switch (item.getItemId()) {
-				case R.id.action_layout_6pt: layoutEm = 6; break;
-				case R.id.action_layout_7pt: layoutEm = 7; break;
-				case R.id.action_layout_8pt: layoutEm = 8; break;
-				case R.id.action_layout_9pt: layoutEm = 9; break;
-				case R.id.action_layout_10pt: layoutEm = 10; break;
-				case R.id.action_layout_11pt: layoutEm = 11; break;
-				case R.id.action_layout_12pt: layoutEm = 12; break;
-				case R.id.action_layout_13pt: layoutEm = 13; break;
-				case R.id.action_layout_14pt: layoutEm = 14; break;
-				case R.id.action_layout_15pt: layoutEm = 15; break;
-				case R.id.action_layout_16pt: layoutEm = 16; break;
-				}
+				int id = item.getItemId();
+				if (id == R.id.action_layout_6pt) layoutEm = 6;
+				else if (id == R.id.action_layout_7pt) layoutEm = 7;
+				else if (id == R.id.action_layout_8pt) layoutEm = 8;
+				else if (id == R.id.action_layout_9pt) layoutEm = 9;
+				else if (id == R.id.action_layout_10pt) layoutEm = 10;
+				else if (id == R.id.action_layout_11pt) layoutEm = 11;
+				else if (id == R.id.action_layout_12pt) layoutEm = 12;
+				else if (id == R.id.action_layout_13pt) layoutEm = 13;
+				else if (id == R.id.action_layout_14pt) layoutEm = 14;
+				else if (id == R.id.action_layout_15pt) layoutEm = 15;
+				else if (id == R.id.action_layout_16pt) layoutEm = 16;
 				if (oldLayoutEm != layoutEm)
 					relayoutDocument();
 				return true;
@@ -577,6 +576,7 @@ public class DocumentActivity extends Activity
 
 	public void gotoURI(String uri) {
 		Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET); // FLAG_ACTIVITY_NEW_DOCUMENT in API>=21
 		try {
 			startActivity(intent);
 		} catch (Throwable x) {

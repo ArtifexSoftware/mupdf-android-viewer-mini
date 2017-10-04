@@ -1,8 +1,9 @@
-/.externalNativeBuild
-/.gradle
-/.idea
-/android.keystore
-/build
-/gradle.properties
-/local.properties
-/mupdf-android-viewer-mini.iml
+.externalNativeBuild
+.gradle
+.idea
+*.iml
+MAVEN
+android.keystore
+build
+gradle.properties
+local.properties

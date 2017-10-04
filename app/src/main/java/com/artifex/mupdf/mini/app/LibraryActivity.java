@@ -1,10 +1,10 @@
-package com.artifex.mupdf.mini;
+package com.artifex.mupdf.mini.app;
 
-import com.artifex.mupdf.fitz.Document; /* for file name recognition */
-
+import android.Manifest;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -12,15 +12,22 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.util.Comparator;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.artifex.mupdf.fitz.Document; /* for file name recognition */
+import com.artifex.mupdf.mini.DocumentActivity;
+
 public class LibraryActivity extends ListActivity
 {
 	protected final int UPDATE_DELAY = 5000;
+	protected final int PERMISSION_REQUEST = 42;
 
 	protected File topDirectory, currentDirectory;
 	protected ArrayAdapter<Item> adapter;
@@ -63,6 +70,10 @@ public class LibraryActivity extends ListActivity
 
 		adapter = new ArrayAdapter<Item>(this, android.R.layout.simple_list_item_1);
 		setListAdapter(adapter);
+
+		if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+			ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST);
+		}
 	}
 
 	public void onResume() {
@@ -90,13 +101,11 @@ public class LibraryActivity extends ListActivity
 		adapter.clear();
 
 		if (!isExternalStorageReadable()) {
-			setTitle(R.string.app_name);
 			adapter.add(new Item(topDirectory, getString(R.string.library_no_external_storage)));
 			return;
 		}
 
 		if (!currentDirectory.isDirectory()) {
-			setTitle(R.string.app_name);
 			adapter.add(new Item(topDirectory, getString(R.string.library_not_a_directory)));
 			return;
 		}
@@ -113,7 +122,8 @@ public class LibraryActivity extends ListActivity
 
 		File[] files = currentDirectory.listFiles(new FileFilter() {
 			public boolean accept(File file) {
-				if (file.isDirectory()) return true;
+				if (file.isDirectory())
+					return true;
 				return Document.recognize(file.getName());
 			}
 		});

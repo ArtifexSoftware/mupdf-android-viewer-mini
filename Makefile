@@ -1,31 +1,31 @@
-assemble: assembleDebug
-install: installDebug
+# This is a very simple Makefile that calls 'gradlew' to do the heavy lifting.
+#
+# The tool 'adb' must be on the path, so that we can find the Android SDK.
 
 ANDROID_HOME := $(shell which adb | sed 's,/platform-tools/adb,,')
-ANDROID_SERIAL ?= $(shell adb devices | grep 'device$$' | cut -f1 | tr '\n' , | sed s/,$$//)
 
-generate:
-	make -j4 -C libmupdf generate
+default: assembleDebug
+release: assembleRelease
+install: installDebug
 
-assembleDebug: generate
+assembleDebug:
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleDebug
-assembleRelease: generate
+assembleRelease:
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleRelease
-installDebug: generate
+installDebug:
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew installDebug
 lint:
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew lint
+archive:
+	ANDROID_HOME=$(ANDROID_HOME) ./gradlew uploadArchives
+sync: archive
+	rsync -av MAVEN/com/ ghostscript.com:/var/www/maven.ghostscript.com/com/
+
+run: install
+	adb shell am start -n com.artifex.mupdf.mini.app/.LibraryActivity
+
 clean:
-	ANDROID_HOME=$(ANDROID_HOME) ./gradlew clean
-
-run: installDebug
-	IFS=","; DEVICES="$(ANDROID_SERIAL)"; \
-	for device in $$DEVICES; do \
-		adb -s $$device shell input keyevent KEYCODE_WAKEUP; \
-		adb -s $$device shell am start -n com.artifex.mupdf.mini/.LibraryActivity; \
-	done
-
-distclean:
-	make -C libmupdf nuke
-	rm -rf .externalNativeBuild .gradle build
-	rm -rf .idea/ local.properties mupdf-android-viewer-mini.iml
+	rm -rf .gradle build
+	rm -rf jni/.externalNativeBuild jni/.gradle jni/build
+	rm -rf lib/.gradle lib/build
+	rm -rf app/.gradle app/build
