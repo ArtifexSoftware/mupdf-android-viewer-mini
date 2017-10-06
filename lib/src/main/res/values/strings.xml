@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="button_outline">Outline</string>
-	<string name="button_layout">Layout</string>
-	<string name="button_search">Search</string>
-	<string name="button_search_backward">&lt;</string>
-	<string name="button_search_forward">&gt;</string>
 	<string name="dlog_password_title">Password:</string>
 	<string name="dlog_password_message">The document is encrypted.</string>
 	<string name="dlog_password_retry">Invalid password.</string>
 	<string name="text_search_hint">Search...</string>
+	<string name="toast_search_not_found">Search not found.</string>
 </resources>

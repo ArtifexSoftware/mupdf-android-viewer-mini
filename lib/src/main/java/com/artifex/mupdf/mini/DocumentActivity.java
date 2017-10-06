@@ -60,12 +60,14 @@ public class DocumentActivity extends Activity
 	protected float displayDPI;
 	protected int canvasW, canvasH;
 
+	protected View currentBar;
 	protected PageView pageView;
 	protected View actionBar;
 	protected TextView titleLabel;
 	protected View searchButton;
 	protected View searchBar;
 	protected EditText searchText;
+	protected View searchCloseButton;
 	protected View searchBackwardButton;
 	protected View searchForwardButton;
 	protected View layoutButton;
@@ -96,6 +98,8 @@ public class DocumentActivity extends Activity
 		actionBar = findViewById(R.id.action_bar);
 		searchBar = findViewById(R.id.search_bar);
 		navigationBar = findViewById(R.id.navigation_bar);
+
+		currentBar = actionBar;
 
 		Uri uri = getIntent().getData();
 		mimetype = getIntent().getType();
@@ -156,13 +160,7 @@ public class DocumentActivity extends Activity
 		searchButton = findViewById(R.id.search_button);
 		searchButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				if (searchBar.getVisibility() == View.GONE) {
-					searchBar.setVisibility(View.VISIBLE);
-					searchBar.requestFocus();
-					showKeyboard();
-				} else {
-					hideSearch();
-				}
+				showSearch();
 			}
 		});
 		searchText = (EditText)findViewById(R.id.search_text);
@@ -184,6 +182,12 @@ public class DocumentActivity extends Activity
 			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				resetSearch();
+			}
+		});
+		searchCloseButton = findViewById(R.id.search_close_button);
+		searchCloseButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				hideSearch();
 			}
 		});
 		searchBackwardButton = findViewById(R.id.search_backward_button);
@@ -360,24 +364,26 @@ public class DocumentActivity extends Activity
 		pageView.resetHits();
 	}
 
-	protected void hideSearch() {
-		searchBar.setVisibility(View.GONE);
-		hideKeyboard();
-		resetSearch();
-	}
-
 	protected void runSearch(final int startPage, final int direction, final String needle) {
 		stopSearch = false;
 		worker.add(new Worker.Task() {
 			int searchPage = startPage;
 			public void work() {
-				if (stopSearch || needle != searchNeedle) return;
-				Log.i(APP, "search page " + searchPage);
-				Page page = doc.loadPage(searchPage);
-				Rect[] hits = page.search(searchNeedle);
-				page.destroy();
-				if (hits != null && hits.length > 0)
-					searchHitPage = searchPage;
+				if (stopSearch || needle != searchNeedle)
+					return;
+				for (int i = 0; i < 9; ++i) {
+					Log.i(APP, "search page " + searchPage);
+					Page page = doc.loadPage(searchPage);
+					Rect[] hits = page.search(searchNeedle);
+					page.destroy();
+					if (hits != null && hits.length > 0) {
+						searchHitPage = searchPage;
+						break;
+					}
+					searchPage += direction;
+					if (searchPage < 0 || searchPage >= pageCount)
+						break;
+				}
 			}
 			public void run() {
 				if (stopSearch || needle != searchNeedle) {
@@ -389,12 +395,13 @@ public class DocumentActivity extends Activity
 					currentPage = searchHitPage;
 					loadPage();
 				} else {
-					searchPage += direction;
 					if (searchPage >= 0 && searchPage < pageCount) {
 						pageLabel.setText((searchPage+1) + " / " + pageCount);
 						worker.add(this);
 					} else {
 						pageLabel.setText((currentPage+1) + " / " + pageCount);
+						Log.i(APP, "search not found");
+						Toast.makeText(DocumentActivity.this, getString(R.string.toast_search_not_found), Toast.LENGTH_SHORT).show();
 					}
 				}
 			}
@@ -540,14 +547,35 @@ public class DocumentActivity extends Activity
 		});
 	}
 
+	protected void showSearch() {
+		currentBar = searchBar;
+		actionBar.setVisibility(View.GONE);
+		searchBar.setVisibility(View.VISIBLE);
+		searchBar.requestFocus();
+		showKeyboard();
+	}
+
+	protected void hideSearch() {
+		currentBar = actionBar;
+		actionBar.setVisibility(View.VISIBLE);
+		searchBar.setVisibility(View.GONE);
+		hideKeyboard();
+		resetSearch();
+	}
+
 	public void toggleUI() {
-		if (actionBar.getVisibility() == View.VISIBLE) {
-			actionBar.setVisibility(View.GONE);
+		if (navigationBar.getVisibility() == View.VISIBLE) {
+			currentBar.setVisibility(View.GONE);
 			navigationBar.setVisibility(View.GONE);
-			hideSearch();
+			if (currentBar == searchBar)
+				hideKeyboard();
 		} else {
-			actionBar.setVisibility(View.VISIBLE);
+			currentBar.setVisibility(View.VISIBLE);
 			navigationBar.setVisibility(View.VISIBLE);
+			if (currentBar == searchBar) {
+				searchBar.requestFocus();
+				showKeyboard();
+			}
 		}
 	}
 
