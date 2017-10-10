@@ -3,6 +3,6 @@
 	<string name="dlog_password_title">Password:</string>
 	<string name="dlog_password_message">The document is encrypted.</string>
 	<string name="dlog_password_retry">Invalid password.</string>
-	<string name="text_search_hint">Search...</string>
+	<string name="text_search_hint">Search&#x2026;</string>
 	<string name="toast_search_not_found">Search not found.</string>
 </resources>
