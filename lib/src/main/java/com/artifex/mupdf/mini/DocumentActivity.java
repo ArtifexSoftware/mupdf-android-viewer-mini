@@ -54,6 +54,7 @@ public class DocumentActivity extends Activity
 
 	protected boolean hasLoaded;
 	protected boolean isReflowable;
+	protected boolean fitPage;
 	protected String title;
 	protected ArrayList<OutlineActivity.Item> flatOutline;
 	protected float layoutW, layoutH, layoutEm;
@@ -70,6 +71,7 @@ public class DocumentActivity extends Activity
 	protected View searchCloseButton;
 	protected View searchBackwardButton;
 	protected View searchForwardButton;
+	protected View zoomButton;
 	protected View layoutButton;
 	protected PopupMenu layoutPopupMenu;
 	protected View outlineButton;
@@ -134,6 +136,7 @@ public class DocumentActivity extends Activity
 
 		prefs = getPreferences(Context.MODE_PRIVATE);
 		layoutEm = prefs.getFloat("layoutEm", 8);
+		fitPage = prefs.getBoolean("fitPage", false);
 		currentPage = prefs.getInt(key, 0);
 		searchHitPage = -1;
 		hasLoaded = false;
@@ -212,6 +215,14 @@ public class DocumentActivity extends Activity
 				bundle.putSerializable("OUTLINE", flatOutline);
 				intent.putExtras(bundle);
 				startActivityForResult(intent, NAVIGATE_REQUEST);
+			}
+		});
+
+		zoomButton = findViewById(R.id.zoom_button);
+		zoomButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				fitPage = !fitPage;
+				loadPage();
 			}
 		});
 
@@ -327,6 +338,7 @@ public class DocumentActivity extends Activity
 		super.onPause();
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putFloat("layoutEm", layoutEm);
+		editor.putBoolean("fitPage", fitPage);
 		editor.putInt(key, currentPage);
 		editor.commit();
 	}
@@ -451,6 +463,8 @@ public class DocumentActivity extends Activity
 				titleLabel.setText(title);
 				if (isReflowable)
 					layoutButton.setVisibility(View.VISIBLE);
+				else
+					zoomButton.setVisibility(View.VISIBLE);
 				loadPage();
 				loadOutline();
 			}
@@ -518,7 +532,11 @@ public class DocumentActivity extends Activity
 					Log.i(APP, "load page " + pageNumber);
 					Page page = doc.loadPage(pageNumber);
 					Log.i(APP, "draw page " + pageNumber);
-					Matrix ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
+					Matrix ctm;
+					if (fitPage)
+						ctm = AndroidDrawDevice.fitPage(page, canvasW, canvasH);
+					else
+						ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
 					bitmap = AndroidDrawDevice.drawPage(page, ctm);
 					links = page.getLinks();
 					if (links != null)
