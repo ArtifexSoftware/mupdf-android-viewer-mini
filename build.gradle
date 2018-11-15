@@ -9,6 +9,9 @@ buildscript {
 
 allprojects {
 	repositories {
+		if (project.hasProperty('MAVEN_REPO')) {
+			maven { url MAVEN_REPO }
+		}
 		jcenter()
 		maven { url 'http://maven.ghostscript.com/' }
 	}
