@@ -4,17 +4,15 @@
 
 ANDROID_HOME := $(shell which adb | sed 's,/platform-tools/adb,,')
 
-default: assembleDebug
-release: assembleRelease
-install: installDebug
+default: debug
 
 generate:
 	if [ -f jni/Makefile ]; then make -C jni generate; fi
-assembleDebug: generate
+debug: generate
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleDebug
-assembleRelease: generate
+release: generate
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleRelease
-installDebug: generate
+install: generate
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew installDebug
 lint:
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew lint
