@@ -8,15 +8,17 @@ default: assembleDebug
 release: assembleRelease
 install: installDebug
 
-assembleDebug:
+generate:
+	if [ -f jni/Makefile ]; then make -C jni generate; fi
+assembleDebug: generate
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleDebug
-assembleRelease:
+assembleRelease: generate
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew assembleRelease
-installDebug:
+installDebug: generate
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew installDebug
 lint:
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew lint
-archive:
+archive: generate
 	ANDROID_HOME=$(ANDROID_HOME) ./gradlew uploadArchives
 sync: archive
 	rsync -av MAVEN/com/ ghostscript.com:/var/www/maven.ghostscript.com/com/
@@ -26,6 +28,6 @@ run: install
 
 clean:
 	rm -rf .gradle build
-	rm -rf jni/.externalNativeBuild jni/.gradle jni/build
+	rm -rf jni/.externalNativeBuild jni/.gradle jni/build jni/libmupdf/generated
 	rm -rf lib/.gradle lib/build
 	rm -rf app/.gradle app/build
