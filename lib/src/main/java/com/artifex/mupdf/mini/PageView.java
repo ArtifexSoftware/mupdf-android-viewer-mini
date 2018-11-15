@@ -26,7 +26,7 @@ public class PageView extends View implements
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
 	protected Link[] links;
-	protected Rect[] hits;
+	protected Quad[] hits;
 	protected boolean showLinks;
 
 	protected GestureDetector detector;
@@ -54,6 +54,7 @@ public class PageView extends View implements
 
 		hitPaint = new Paint();
 		hitPaint.setARGB(32, 255, 0, 0);
+		hitPaint.setStyle(Paint.Style.FILL_AND_STROKE);
 
 		errorPaint = new Paint();
 		errorPaint.setARGB(255, 255, 80, 80);
@@ -81,7 +82,7 @@ public class PageView extends View implements
 		invalidate();
 	}
 
-	public void setBitmap(Bitmap b, boolean wentBack, Link[] ls, Rect[] hs) {
+	public void setBitmap(Bitmap b, boolean wentBack, Link[] ls, Quad[] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
@@ -277,7 +278,16 @@ public class PageView extends View implements
 		}
 
 		if (hits != null && hits.length > 0)
-			for (Rect b : hits)
-				canvas.drawRect(b.x0, b.y0, b.x1, b.y1, hitPaint);
+			for (Quad q : hits)
+			{
+				Path path = new Path();
+				path.moveTo(q.ul_x, q.ul_y);
+				path.lineTo(q.ll_x, q.ll_y);
+				path.lineTo(q.lr_x, q.lr_y);
+				path.lineTo(q.ur_x, q.ur_y);
+				path.close();
+
+				canvas.drawPath(path, hitPaint);
+			}
 	}
 }
