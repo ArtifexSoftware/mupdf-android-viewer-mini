@@ -6,9 +6,9 @@ version = '1.13.0'
 
 dependencies {
 	if (file('../jni/build.gradle').isFile())
-		compile project(':jni')
+		api project(':jni')
 	else
-		compile 'com.artifex.mupdf:fitz:1.13.0'
+		api 'com.artifex.mupdf:fitz:1.13.0'
 }
 
 android {

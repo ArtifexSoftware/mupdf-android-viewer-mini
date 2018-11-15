@@ -4,11 +4,11 @@ group = 'com.artifex.mupdf'
 version = '1.13.0'
 
 dependencies {
-	compile 'com.android.support:appcompat-v7:25.+'
+	implementation 'com.android.support:appcompat-v7:25.+'
 	if (file('../lib/build.gradle').isFile())
-		compile project(':lib')
+		api project(':lib')
 	else
-		compile 'com.artifex.mupdf:mini:1.13.0'
+		api 'com.artifex.mupdf:mini:1.13.0'
 }
 
 android {
@@ -28,7 +28,7 @@ android {
 	}
 
 	// Increment version code for each ABI variant
-	def abiOffsets = [ 'armeabi':1, 'armeabi-v7a':2, 'arm64-v8a':3, 'x86':4, 'x86_64':5, 'mips':6, 'mips64':7, ]
+	def abiOffsets = [ 'armeabi':1, 'armeabi-v7a':2, 'arm64-v8a':3, 'x86':4, 'x86_64':5, ]
 	applicationVariants.all { variant ->
 		variant.outputs.each { output ->
 			def offset = abiOffsets.get(output.getFilter(com.android.build.OutputFile.ABI))
