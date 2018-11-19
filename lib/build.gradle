@@ -22,7 +22,11 @@ android {
 uploadArchives {
 	repositories {
 		mavenDeployer {
-			repository(url: 'file://MAVEN')
+			if (project.hasProperty('MAVEN_REPO')) {
+				repository(url: MAVEN_REPO)
+			} else {
+				repository(url: 'file://MAVEN')
+			}
 			pom {
 				artifactId = 'mini'
 				project {
