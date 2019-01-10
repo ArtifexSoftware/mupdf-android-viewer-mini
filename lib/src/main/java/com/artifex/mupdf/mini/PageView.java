@@ -54,7 +54,7 @@ public class PageView extends View implements
 
 		hitPaint = new Paint();
 		hitPaint.setARGB(32, 255, 0, 0);
-		hitPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+		hitPaint.setStyle(Paint.Style.FILL);
 
 		errorPaint = new Paint();
 		errorPaint.setARGB(255, 255, 80, 80);
