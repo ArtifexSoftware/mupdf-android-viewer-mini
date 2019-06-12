@@ -20,7 +20,7 @@ public class PageView extends View implements
 {
 	protected DocumentActivity actionListener;
 
-	protected float viewScale, minScale, maxScale;
+	protected float pageScale, viewScale, minScale, maxScale;
 	protected Bitmap bitmap;
 	protected int bitmapW, bitmapH;
 	protected int canvasW, canvasH;
@@ -45,6 +45,7 @@ public class PageView extends View implements
 		detector = new GestureDetector(ctx, this);
 		scaleDetector = new ScaleGestureDetector(ctx, this);
 
+		pageScale = 1;
 		viewScale = 1;
 		minScale = 1;
 		maxScale = 2;
@@ -82,18 +83,21 @@ public class PageView extends View implements
 		invalidate();
 	}
 
-	public void setBitmap(Bitmap b, boolean wentBack, Link[] ls, Quad[] hs) {
+	public void setBitmap(Bitmap b, float zoom, boolean wentBack, Link[] ls, Quad[] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
 		links = ls;
 		hits = hs;
 		bitmap = b;
-		bitmapW = (int)(bitmap.getWidth() * viewScale);
-		bitmapH = (int)(bitmap.getHeight() * viewScale);
+		bitmapW = (int)(bitmap.getWidth() * viewScale / zoom);
+		bitmapH = (int)(bitmap.getHeight() * viewScale / zoom);
 		scroller.forceFinished(true);
-		scrollX = wentBack ? bitmapW - canvasW : 0;
-		scrollY = wentBack ? bitmapH - canvasH : 0;
+		if (pageScale == zoom) {
+			scrollX = wentBack ? bitmapW - canvasW : 0;
+			scrollY = wentBack ? bitmapH - canvasH : 0;
+		}
+		pageScale = zoom;
 		invalidate();
 	}
 
@@ -179,7 +183,9 @@ public class PageView extends View implements
 		return true;
 	}
 
-	public boolean onScaleBegin(ScaleGestureDetector det) { return true; }
+	public boolean onScaleBegin(ScaleGestureDetector det) {
+		return true;
+	}
 
 	public boolean onScale(ScaleGestureDetector det) {
 		if (bitmap != null) {
@@ -191,8 +197,8 @@ public class PageView extends View implements
 			viewScale *= scaleFactor;
 			if (viewScale < minScale) viewScale = minScale;
 			if (viewScale > maxScale) viewScale = maxScale;
-			bitmapW = (int)(bitmap.getWidth() * viewScale);
-			bitmapH = (int)(bitmap.getHeight() * viewScale);
+			bitmapW = (int)(bitmap.getWidth() * viewScale / pageScale);
+			bitmapH = (int)(bitmap.getHeight() * viewScale / pageScale);
 			scrollX = (int)(pageFocusX * viewScale - focusX);
 			scrollY = (int)(pageFocusY * viewScale - focusY);
 			scroller.forceFinished(true);
@@ -201,7 +207,9 @@ public class PageView extends View implements
 		return true;
 	}
 
-	public void onScaleEnd(ScaleGestureDetector det) { }
+	public void onScaleEnd(ScaleGestureDetector det) {
+		actionListener.onPageViewZoomChanged(viewScale);
+	}
 
 	public void goBackward() {
 		scroller.forceFinished(true);
@@ -232,6 +240,7 @@ public class PageView extends View implements
 	}
 
 	public void onDraw(Canvas canvas) {
+		android.graphics.Rect dst;
 		int x, y;
 
 		if (bitmap == null) {
@@ -266,28 +275,32 @@ public class PageView extends View implements
 			y = -scrollY;
 		}
 
-		canvas.translate(x, y);
-		canvas.scale(viewScale, viewScale);
-		canvas.drawBitmap(bitmap, 0, 0, null);
+		dst = new android.graphics.Rect(x, y, x + bitmapW, y + bitmapH);
+		canvas.drawBitmap(bitmap, null, dst, null);
 
 		if (showLinks && links != null && links.length > 0) {
 			for (Link link : links) {
 				Rect b = link.bounds;
-				canvas.drawRect(b.x0, b.y0, b.x1, b.y1, linkPaint);
+				canvas.drawRect(
+					x + b.x0 * viewScale,
+					y + b.y0 * viewScale,
+					x + b.x1 * viewScale,
+					y + b.y1 * viewScale,
+					linkPaint
+				);
 			}
 		}
 
-		if (hits != null && hits.length > 0)
-			for (Quad q : hits)
-			{
+		if (hits != null && hits.length > 0) {
+			for (Quad q : hits) {
 				Path path = new Path();
-				path.moveTo(q.ul_x, q.ul_y);
-				path.lineTo(q.ll_x, q.ll_y);
-				path.lineTo(q.lr_x, q.lr_y);
-				path.lineTo(q.ur_x, q.ur_y);
+				path.moveTo(x + q.ul_x * viewScale, y + q.ul_y * viewScale);
+				path.lineTo(x + q.ll_x * viewScale, y + q.ll_y * viewScale);
+				path.lineTo(x + q.lr_x * viewScale, y + q.lr_y * viewScale);
+				path.lineTo(x + q.ur_x * viewScale, y + q.ur_y * viewScale);
 				path.close();
-
 				canvas.drawPath(path, hitPaint);
 			}
+		}
 	}
 }

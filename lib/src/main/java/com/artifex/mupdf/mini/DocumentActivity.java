@@ -60,6 +60,7 @@ public class DocumentActivity extends Activity
 	protected float layoutW, layoutH, layoutEm;
 	protected float displayDPI;
 	protected int canvasW, canvasH;
+	protected float pageZoom;
 
 	protected View currentBar;
 	protected PageView pageView;
@@ -257,6 +258,7 @@ public class DocumentActivity extends Activity
 	}
 
 	public void onPageViewSizeChanged(int w, int h) {
+		pageZoom = 1;
 		canvasW = w;
 		canvasH = h;
 		layoutW = canvasW * 72 / displayDPI;
@@ -267,6 +269,13 @@ public class DocumentActivity extends Activity
 		} else if (isReflowable) {
 			relayoutDocument();
 		} else {
+			loadPage();
+		}
+	}
+
+	public void onPageViewZoomChanged(float zoom) {
+		if (zoom != pageZoom) {
+			pageZoom = zoom;
 			loadPage();
 		}
 	}
@@ -522,6 +531,7 @@ public class DocumentActivity extends Activity
 
 	protected void loadPage() {
 		final int pageNumber = currentPage;
+		final float zoom = pageZoom;
 		stopSearch = true;
 		worker.add(new Worker.Task() {
 			public Bitmap bitmap;
@@ -531,13 +541,12 @@ public class DocumentActivity extends Activity
 				try {
 					Log.i(APP, "load page " + pageNumber);
 					Page page = doc.loadPage(pageNumber);
-					Log.i(APP, "draw page " + pageNumber);
+					Log.i(APP, "draw page " + pageNumber + " zoom=" + zoom);
 					Matrix ctm;
 					if (fitPage)
 						ctm = AndroidDrawDevice.fitPage(page, canvasW, canvasH);
 					else
 						ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
-					bitmap = AndroidDrawDevice.drawPage(page, ctm);
 					links = page.getLinks();
 					if (links != null)
 						for (Link link : links)
@@ -548,13 +557,16 @@ public class DocumentActivity extends Activity
 							for (Quad hit : hits)
 								hit.transform(ctm);
 					}
+					if (zoom != 1)
+						ctm.scale(zoom);
+					bitmap = AndroidDrawDevice.drawPage(page, ctm);
 				} catch (Throwable x) {
 					Log.e(APP, x.getMessage());
 				}
 			}
 			public void run() {
 				if (bitmap != null)
-					pageView.setBitmap(bitmap, wentBack, links, hits);
+					pageView.setBitmap(bitmap, zoom, wentBack, links, hits);
 				else
 					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
