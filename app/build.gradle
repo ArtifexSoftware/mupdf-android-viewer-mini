@@ -1,23 +1,23 @@
 apply plugin: 'com.android.application'
 
 group = 'com.artifex.mupdf'
-version = '1.15.0'
+version = '1.16.1'
 
 dependencies {
 	implementation 'androidx.appcompat:appcompat:1.1.+'
 	if (file('../lib/build.gradle').isFile())
 		api project(':lib')
 	else
-		api 'com.artifex.mupdf:mini:1.15.0'
+		api 'com.artifex.mupdf:mini:1.16.1'
 }
 
 android {
 	compileSdkVersion 28
 	defaultConfig {
 		minSdkVersion 16
-		versionName '1.15.0'
-		versionCode 50
 		targetSdkVersion 28
+		versionName '1.16.1'
+		versionCode 60
 	}
 
 	splits {
