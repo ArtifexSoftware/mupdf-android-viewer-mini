@@ -239,8 +239,10 @@ public class PageView extends View implements
 		invalidate();
 	}
 
+	private android.graphics.Rect dst = new android.graphics.Rect();
+	private Path path = new Path();
+
 	public void onDraw(Canvas canvas) {
-		android.graphics.Rect dst;
 		int x, y;
 
 		if (bitmap == null) {
@@ -275,7 +277,7 @@ public class PageView extends View implements
 			y = -scrollY;
 		}
 
-		dst = new android.graphics.Rect(x, y, x + bitmapW, y + bitmapH);
+		dst.set(x, y, x + bitmapW, y + bitmapH);
 		canvas.drawBitmap(bitmap, null, dst, null);
 
 		if (showLinks && links != null && links.length > 0) {
@@ -293,7 +295,7 @@ public class PageView extends View implements
 
 		if (hits != null && hits.length > 0) {
 			for (Quad q : hits) {
-				Path path = new Path();
+				path.rewind();
 				path.moveTo(x + q.ul_x * viewScale, y + q.ul_y * viewScale);
 				path.lineTo(x + q.ll_x * viewScale, y + q.ll_y * viewScale);
 				path.lineTo(x + q.lr_x * viewScale, y + q.lr_y * viewScale);

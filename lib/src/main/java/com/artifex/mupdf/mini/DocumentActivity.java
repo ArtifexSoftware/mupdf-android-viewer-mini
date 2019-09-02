@@ -349,7 +349,7 @@ public class DocumentActivity extends Activity
 		editor.putFloat("layoutEm", layoutEm);
 		editor.putBoolean("fitPage", fitPage);
 		editor.putInt(key, currentPage);
-		editor.commit();
+		editor.apply();
 	}
 
 	public void onBackPressed() {
