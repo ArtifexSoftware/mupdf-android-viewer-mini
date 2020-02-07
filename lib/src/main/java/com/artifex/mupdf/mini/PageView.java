@@ -142,10 +142,10 @@ public class PageView extends View implements
 			for (Link link : links) {
 				Rect b = link.bounds;
 				if (mx >= b.x0 && mx <= b.x1 && my >= b.y0 && my <= b.y1) {
-					if (link.uri != null)
+					if (link.isExternal())
 						actionListener.gotoURI(link.uri);
-					else if (link.page >= 0)
-						actionListener.gotoPage(link.page);
+					else
+						actionListener.gotoPage(link.uri);
 					foundLink = true;
 					break;
 				}

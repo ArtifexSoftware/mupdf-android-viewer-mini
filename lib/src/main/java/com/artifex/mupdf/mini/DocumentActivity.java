@@ -484,11 +484,11 @@ public class DocumentActivity extends Activity
 		worker.add(new Worker.Task() {
 			public void work() {
 				try {
-					long mark = doc.makeBookmark(currentPage);
+					long mark = doc.makeBookmark(doc.locationFromPageNumber(currentPage));
 					Log.i(APP, "relayout document");
 					doc.layout(layoutW, layoutH, layoutEm);
 					pageCount = doc.countPages();
-					currentPage = doc.findBookmark(mark);
+					currentPage = doc.pageNumberFromLocation(doc.findBookmark(mark));
 				} catch (Throwable x) {
 					pageCount = 1;
 					currentPage = 0;
@@ -507,7 +507,7 @@ public class DocumentActivity extends Activity
 			private void flattenOutline(Outline[] outline, String indent) {
 				for (Outline node : outline) {
 					if (node.title != null)
-						flatOutline.add(new OutlineActivity.Item(indent + node.title, node.page));
+						flatOutline.add(new OutlineActivity.Item(indent + node.title, node.uri, node.page));
 					if (node.down != null)
 						flattenOutline(node.down, indent + "    ");
 				}
@@ -630,6 +630,10 @@ public class DocumentActivity extends Activity
 			currentPage = p;
 			loadPage();
 		}
+	}
+
+	public void gotoPage(String uri) {
+		gotoPage(doc.pageNumberFromLocation(doc.resolveLink(uri)));
 	}
 
 	public void gotoURI(String uri) {

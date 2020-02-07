@@ -15,9 +15,11 @@ public class OutlineActivity extends ListActivity
 {
 	public static class Item implements Serializable {
 		public String title;
+		public String uri;
 		public int page;
-		public Item(String title, int page) {
+		public Item(String title, String uri, int page) {
 			this.title = title;
+			this.uri = uri;
 			this.page = page;
 		}
 		public String toString() {
