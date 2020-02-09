@@ -507,7 +507,10 @@ public class DocumentActivity extends Activity
 			private void flattenOutline(Outline[] outline, String indent) {
 				for (Outline node : outline) {
 					if (node.title != null)
-						flatOutline.add(new OutlineActivity.Item(indent + node.title, node.uri, node.page));
+					{
+						int outlinePage = doc.pageNumberFromLocation(doc.resolveLink(node));
+						flatOutline.add(new OutlineActivity.Item(indent + node.title, node.uri, outlinePage));
+					}
 					if (node.down != null)
 						flattenOutline(node.down, indent + "    ");
 				}
