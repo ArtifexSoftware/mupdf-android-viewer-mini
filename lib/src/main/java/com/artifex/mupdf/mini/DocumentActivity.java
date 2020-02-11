@@ -3,12 +3,14 @@ package com.artifex.mupdf.mini;
 import com.artifex.mupdf.fitz.*;
 import com.artifex.mupdf.fitz.android.*;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -30,6 +32,9 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import java.util.ArrayList;
 import java.util.Stack;
 import java.io.InputStream;
@@ -41,6 +46,7 @@ public class DocumentActivity extends Activity
 	private final String APP = "MuPDF";
 
 	public final int NAVIGATE_REQUEST = 1;
+	protected final int PERMISSION_REQUEST = 42;
 
 	protected Worker worker;
 	protected SharedPreferences prefs;
@@ -108,6 +114,8 @@ public class DocumentActivity extends Activity
 		mimetype = getIntent().getType();
 		key = uri.toString();
 		if (uri.getScheme().equals("file")) {
+			if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED)
+				ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST);
 			title = uri.getLastPathSegment();
 			path = uri.getPath();
 		} else {
