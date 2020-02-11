@@ -40,6 +40,8 @@ import java.util.Stack;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class DocumentActivity extends Activity
 {
@@ -94,6 +96,13 @@ public class DocumentActivity extends Activity
 	protected Stack<Integer> history;
 	protected boolean wentBack;
 
+	private String toHex(byte[] digest) {
+		StringBuilder builder = new StringBuilder(2 * digest.length);
+		for (byte b : digest)
+			builder.append(String.format("%02x", b));
+		return builder.toString();
+	}
+
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -129,7 +138,8 @@ public class DocumentActivity extends Activity
 					out.write(buf, 0, n);
 				out.flush();
 				buffer = out.toByteArray();
-			} catch (IOException x) {
+				key = toHex(MessageDigest.getInstance("MD5").digest(buffer));
+			} catch (IOException | NoSuchAlgorithmException x) {
 				Log.e(APP, x.toString());
 				Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
 			}
