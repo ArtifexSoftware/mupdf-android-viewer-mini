@@ -48,7 +48,6 @@ public class DocumentActivity extends Activity
 	private final String APP = "MuPDF";
 
 	public final int NAVIGATE_REQUEST = 1;
-	protected final int PERMISSION_REQUEST = 42;
 
 	protected Worker worker;
 	protected SharedPreferences prefs;
@@ -56,7 +55,6 @@ public class DocumentActivity extends Activity
 	protected Document doc;
 
 	protected String key;
-	protected String path;
 	protected String mimetype;
 	protected byte[] buffer;
 
@@ -121,28 +119,30 @@ public class DocumentActivity extends Activity
 
 		Uri uri = getIntent().getData();
 		mimetype = getIntent().getType();
+		if (mimetype == null || mimetype.equals("application/octet-stream"))
+			mimetype = uri.getLastPathSegment();
+
 		key = uri.toString();
-		if (uri.getScheme().equals("file")) {
-			if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED)
-				ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST);
-			title = uri.getLastPathSegment();
-			path = uri.getPath();
-		} else {
-			title = uri.toString();
-			try {
-				InputStream stm = getContentResolver().openInputStream(uri);
-				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				byte[] buf = new byte[16384];
-				int n;
-				while ((n = stm.read(buf)) != -1)
-					out.write(buf, 0, n);
-				out.flush();
-				buffer = out.toByteArray();
-				key = toHex(MessageDigest.getInstance("MD5").digest(buffer));
-			} catch (IOException | NoSuchAlgorithmException x) {
-				Log.e(APP, x.toString());
-				Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
-			}
+		title = uri.getLastPathSegment();
+
+		Log.i(APP, "URI " + uri.toString());
+		Log.i(APP, "MAGIC " + mimetype);
+		Log.i(APP, "TITLE " + title);
+
+		try {
+			InputStream stm = getContentResolver().openInputStream(uri);
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			byte[] buf = new byte[16384];
+			int n;
+			while ((n = stm.read(buf)) != -1)
+				out.write(buf, 0, n);
+			out.flush();
+			buffer = out.toByteArray();
+			key = toHex(MessageDigest.getInstance("MD5").digest(buffer));
+			Log.i(APP, "BUFFER " + buffer.length + " " + key);
+		} catch (IOException | NoSuchAlgorithmException x) {
+			Log.e(APP, x.toString());
+			Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
 		}
 
 		titleLabel = (TextView)findViewById(R.id.title_label);
@@ -328,10 +328,7 @@ public class DocumentActivity extends Activity
 			boolean needsPassword;
 			public void work() {
 				Log.i(APP, "open document");
-				if (path != null)
-					doc = Document.openDocument(path);
-				else
-					doc = Document.openDocument(buffer, mimetype);
+				doc = Document.openDocument(buffer, mimetype);
 				needsPassword = doc.needsPassword();
 			}
 			public void run() {
