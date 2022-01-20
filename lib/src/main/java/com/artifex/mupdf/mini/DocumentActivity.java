@@ -11,9 +11,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.method.PasswordTransformationMethod;
@@ -35,13 +37,9 @@ import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Stack;
-import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 public class DocumentActivity extends Activity
 {
@@ -56,7 +54,7 @@ public class DocumentActivity extends Activity
 
 	protected String key;
 	protected String mimetype;
-	protected byte[] buffer;
+	protected SeekableInputStream file;
 
 	protected boolean hasLoaded;
 	protected boolean isReflowable;
@@ -119,28 +117,32 @@ public class DocumentActivity extends Activity
 
 		Uri uri = getIntent().getData();
 		mimetype = getIntent().getType();
-		if (mimetype == null || mimetype.equals("application/octet-stream"))
-			mimetype = uri.getLastPathSegment();
-
 		key = uri.toString();
-		title = uri.getLastPathSegment();
 
-		Log.i(APP, "URI " + uri.toString());
-		Log.i(APP, "MAGIC " + mimetype);
-		Log.i(APP, "TITLE " + title);
+		Cursor cursor = getContentResolver().query(uri, null, null, null);
+		cursor.moveToFirst();
+		title = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+		long size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
+		if (size == 0)
+			size = -1;
+
+		Log.i(APP, "OPEN URI " + uri.toString());
+		Log.i(APP, "  NAME " + title);
+		Log.i(APP, "  SIZE " + size);
+
+		Log.i(APP, "  MAGIC (Intent) " + mimetype);
+		if (mimetype == null || mimetype.equals("application/octet-stream")) {
+			mimetype = getContentResolver().getType(uri);
+			Log.i(APP, "  MAGIC (Resolver) " + mimetype);
+		}
+		if (mimetype == null || mimetype.equals("application/octet-stream")) {
+			mimetype = title;
+			Log.i(APP, "  MAGIC (Filename) " + mimetype);
+		}
 
 		try {
-			InputStream stm = getContentResolver().openInputStream(uri);
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			byte[] buf = new byte[16384];
-			int n;
-			while ((n = stm.read(buf)) != -1)
-				out.write(buf, 0, n);
-			out.flush();
-			buffer = out.toByteArray();
-			key = toHex(MessageDigest.getInstance("MD5").digest(buffer));
-			Log.i(APP, "BUFFER " + buffer.length + " " + key);
-		} catch (IOException | NoSuchAlgorithmException x) {
+			file = new SeekableInputStreamWrapper(getContentResolver().openInputStream(uri), size);
+		} catch (IOException x) {
 			Log.e(APP, x.toString());
 			Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
 		}
@@ -328,7 +330,7 @@ public class DocumentActivity extends Activity
 			boolean needsPassword;
 			public void work() {
 				Log.i(APP, "open document");
-				doc = Document.openDocument(buffer, mimetype);
+				doc = Document.openDocument(file, mimetype);
 				needsPassword = doc.needsPassword();
 			}
 			public void run() {
