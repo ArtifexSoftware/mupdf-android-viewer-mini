@@ -275,6 +275,31 @@ public class DocumentActivity extends Activity
 		});
 	}
 
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		switch (keyCode) {
+		case KeyEvent.KEYCODE_PAGE_UP:
+		case KeyEvent.KEYCODE_COMMA:
+		case KeyEvent.KEYCODE_B:
+			goBackward();
+			return true;
+		case KeyEvent.KEYCODE_PAGE_DOWN:
+		case KeyEvent.KEYCODE_PERIOD:
+		case KeyEvent.KEYCODE_SPACE:
+			goForward();
+			return true;
+		case KeyEvent.KEYCODE_M:
+			history.push(currentPage);
+			return true;
+		case KeyEvent.KEYCODE_T:
+			if (!history.empty()) {
+				currentPage = history.pop();
+				loadPage();
+			}
+			return true;
+		}
+		return super.onKeyUp(keyCode, event);
+	}
+
 	public void onPageViewSizeChanged(int w, int h) {
 		pageZoom = 1;
 		canvasW = w;
