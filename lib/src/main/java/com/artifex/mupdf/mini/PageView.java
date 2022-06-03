@@ -26,7 +26,7 @@ public class PageView extends View implements
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
 	protected Link[] links;
-	protected Quad[] hits;
+	protected Quad[][] hits;
 	protected boolean showLinks;
 
 	protected GestureDetector detector;
@@ -83,7 +83,7 @@ public class PageView extends View implements
 		invalidate();
 	}
 
-	public void setBitmap(Bitmap b, float zoom, boolean wentBack, Link[] ls, Quad[] hs) {
+	public void setBitmap(Bitmap b, float zoom, boolean wentBack, Link[] ls, Quad[][] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
@@ -294,15 +294,16 @@ public class PageView extends View implements
 		}
 
 		if (hits != null && hits.length > 0) {
-			for (Quad q : hits) {
-				path.rewind();
-				path.moveTo(x + q.ul_x * viewScale, y + q.ul_y * viewScale);
-				path.lineTo(x + q.ll_x * viewScale, y + q.ll_y * viewScale);
-				path.lineTo(x + q.lr_x * viewScale, y + q.lr_y * viewScale);
-				path.lineTo(x + q.ur_x * viewScale, y + q.ur_y * viewScale);
-				path.close();
-				canvas.drawPath(path, hitPaint);
-			}
+			for (Quad[] h : hits)
+				for (Quad q : h) {
+					path.rewind();
+					path.moveTo(x + q.ul_x * viewScale, y + q.ul_y * viewScale);
+					path.lineTo(x + q.ll_x * viewScale, y + q.ll_y * viewScale);
+					path.lineTo(x + q.lr_x * viewScale, y + q.lr_y * viewScale);
+					path.lineTo(x + q.ur_x * viewScale, y + q.ur_y * viewScale);
+					path.close();
+					canvas.drawPath(path, hitPaint);
+				}
 		}
 	}
 }

@@ -437,7 +437,7 @@ public class DocumentActivity extends Activity
 				for (int i = 0; i < 9; ++i) {
 					Log.i(APP, "search page " + searchPage);
 					Page page = doc.loadPage(searchPage);
-					Quad[] hits = page.search(searchNeedle);
+					Quad[][] hits = page.search(searchNeedle);
 					page.destroy();
 					if (hits != null && hits.length > 0) {
 						searchHitPage = searchPage;
@@ -581,7 +581,7 @@ public class DocumentActivity extends Activity
 		worker.add(new Worker.Task() {
 			public Bitmap bitmap;
 			public Link[] links;
-			public Quad[] hits;
+			public Quad[][] hits;
 			public void work() {
 				try {
 					Log.i(APP, "load page " + pageNumber);
@@ -599,8 +599,9 @@ public class DocumentActivity extends Activity
 					if (searchNeedle != null) {
 						hits = page.search(searchNeedle);
 						if (hits != null)
-							for (Quad hit : hits)
-								hit.transform(ctm);
+							for (Quad[] hit : hits)
+								for (Quad chr : hit)
+									chr.transform(ctm);
 					}
 					if (zoom != 1)
 						ctm.scale(zoom);
