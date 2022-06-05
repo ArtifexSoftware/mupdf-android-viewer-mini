@@ -9,6 +9,7 @@
 		>
 		<activity
 			android:name=".LibraryActivity"
+			android:exported="true"
 			>
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
