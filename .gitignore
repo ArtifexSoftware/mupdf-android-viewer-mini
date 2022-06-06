@@ -5,6 +5,5 @@
 MAVEN
 android.keystore
 build
-gradle.properties
 local.properties
 tags
