@@ -493,7 +493,7 @@ public class DocumentActivity extends Activity
 				try {
 					Log.i(APP, "load document");
 					String metaTitle = doc.getMetaData(Document.META_INFO_TITLE);
-					if (metaTitle != null)
+					if (metaTitle != null && !metaTitle.equals(""))
 						title = metaTitle;
 					isReflowable = doc.isReflowable();
 					if (isReflowable) {
