@@ -119,7 +119,7 @@ public class DocumentActivity extends Activity
 		mimetype = getIntent().getType();
 		key = uri.toString();
 
-		Cursor cursor = getContentResolver().query(uri, null, null, null);
+		Cursor cursor = getContentResolver().query(uri, null, null, null, null);
 		cursor.moveToFirst();
 		title = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
 		long size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
