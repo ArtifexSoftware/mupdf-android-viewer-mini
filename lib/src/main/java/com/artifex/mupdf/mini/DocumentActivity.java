@@ -6,6 +6,7 @@ import com.artifex.mupdf.fitz.android.*;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -15,6 +16,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -37,7 +39,9 @@ import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Stack;
 
@@ -54,7 +58,8 @@ public class DocumentActivity extends Activity
 
 	protected String key;
 	protected String mimetype;
-	protected SeekableInputStream file;
+	protected SeekableInputStream stream;
+	protected byte[] buffer;
 
 	protected boolean hasLoaded;
 	protected boolean isReflowable;
@@ -99,6 +104,48 @@ public class DocumentActivity extends Activity
 		return builder.toString();
 	}
 
+	private void openInput(Uri uri, long size, String mimetype) throws IOException {
+		ContentResolver cr = getContentResolver();
+
+		Log.i(APP, "Opening document " + uri);
+
+		InputStream is = cr.openInputStream(uri);
+		byte[] buf = null;
+		int used = -1;
+		try {
+			final int limit = 8 * 1024 * 1024;
+			if (size < 0) { // size is unknown
+				buf = new byte[limit];
+				used = is.read(buf);
+				boolean atEOF = is.read() == -1;
+				if (used < 0 || (used == limit && !atEOF)) // no or partial data
+					buf = null;
+			} else if (size <= limit) { // size is known and below limit
+				buf = new byte[(int) size];
+				used = is.read(buf);
+				if (used < 0 || used < size) // no or partial data
+					buf = null;
+			}
+			if (buf != null && buf.length != used) {
+				byte[] newbuf = new byte[used];
+				System.arraycopy(buf, 0, newbuf, 0, used);
+				buf = newbuf;
+			}
+		} catch (OutOfMemoryError e) {
+			buf = null;
+		} finally {
+			is.close();
+		}
+
+		if (buf != null) {
+			Log.i(APP, "  Opening document from memory buffer of size " + buf.length);
+			buffer = buf;
+		} else {
+			Log.i(APP, "  Opening document from stream");
+			stream = new ContentInputStream(cr, uri, size);
+		}
+	}
+
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -119,18 +166,28 @@ public class DocumentActivity extends Activity
 		mimetype = getIntent().getType();
 		key = uri.toString();
 
-		Cursor cursor = getContentResolver().query(uri, null, null, null, null);
-		cursor.moveToFirst();
-		title = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-		long size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
-		if (size == 0)
-			size = -1;
-
 		Log.i(APP, "OPEN URI " + uri.toString());
+		Log.i(APP, "  MAGIC (Intent) " + mimetype);
+
+		title = "";
+		long size = -1;
+		Cursor cursor;
+
+		cursor = getContentResolver().query(uri, null, null, null, null, null);
+		if (cursor != null && cursor.moveToFirst()){
+			try {
+				title = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+				size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
+				if (size == 0)
+					size = -1;
+			} finally {
+				cursor.close();
+			}
+		}
+
 		Log.i(APP, "  NAME " + title);
 		Log.i(APP, "  SIZE " + size);
 
-		Log.i(APP, "  MAGIC (Intent) " + mimetype);
 		if (mimetype == null || mimetype.equals("application/octet-stream")) {
 			mimetype = getContentResolver().getType(uri);
 			Log.i(APP, "  MAGIC (Resolver) " + mimetype);
@@ -141,7 +198,7 @@ public class DocumentActivity extends Activity
 		}
 
 		try {
-			file = new SeekableInputStreamWrapper(getContentResolver().openInputStream(uri), size);
+			openInput(uri, size, mimetype);
 		} catch (IOException x) {
 			Log.e(APP, x.toString());
 			Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
@@ -330,7 +387,10 @@ public class DocumentActivity extends Activity
 			boolean needsPassword;
 			public void work() {
 				Log.i(APP, "open document");
-				doc = Document.openDocument(file, mimetype);
+				if (buffer != null)
+					doc = Document.openDocument(buffer, mimetype);
+				else
+					doc = Document.openDocument(stream, mimetype);
 				needsPassword = doc.needsPassword();
 			}
 			public void run() {
