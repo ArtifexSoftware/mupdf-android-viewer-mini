@@ -457,6 +457,8 @@ public class DocumentActivity extends Activity
 	public void onBackPressed() {
 		if (history.empty()) {
 			super.onBackPressed();
+			Intent intent = getPackageManager().getLaunchIntentForPackage(getComponentName().getPackageName());
+			startActivity(intent);
 		} else {
 			currentPage = history.pop();
 			loadPage();
