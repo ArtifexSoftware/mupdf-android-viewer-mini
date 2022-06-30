@@ -185,8 +185,16 @@ public class DocumentActivity extends Activity
 		cursor = getContentResolver().query(uri, null, null, null, null, null);
 		if (cursor != null && cursor.moveToFirst()){
 			try {
-				title = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-				size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
+				int idx;
+
+				idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+				if (idx >= 0 && cursor.getType(idx) == Cursor.FIELD_TYPE_STRING)
+					title = cursor.getString(idx);
+
+				idx = cursor.getColumnIndex(OpenableColumns.SIZE);
+				if (idx >= 0 && cursor.getType(idx) == Cursor.FIELD_TYPE_INTEGER)
+					size = cursor.getLong(idx);
+
 				if (size == 0)
 					size = -1;
 			} finally {
