@@ -61,6 +61,7 @@ public class DocumentActivity extends Activity
 	protected SeekableInputStream stream;
 	protected byte[] buffer;
 
+	protected boolean returnToLibraryActivity;
 	protected boolean hasLoaded;
 	protected boolean isReflowable;
 	protected boolean fitPage;
@@ -164,6 +165,14 @@ public class DocumentActivity extends Activity
 
 		Uri uri = getIntent().getData();
 		mimetype = getIntent().getType();
+
+		if (uri == null) {
+			Toast.makeText(this, "No document uri to open", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		returnToLibraryActivity = getIntent().getIntExtra(getComponentName().getPackageName() + ".ReturnToLibraryActivity", 0) != 0;
+
 		key = uri.toString();
 
 		Log.i(APP, "OPEN URI " + uri.toString());
@@ -457,8 +466,10 @@ public class DocumentActivity extends Activity
 	public void onBackPressed() {
 		if (history.empty()) {
 			super.onBackPressed();
-			Intent intent = getPackageManager().getLaunchIntentForPackage(getComponentName().getPackageName());
-			startActivity(intent);
+			if (returnToLibraryActivity) {
+				Intent intent = getPackageManager().getLaunchIntentForPackage(getComponentName().getPackageName());
+				startActivity(intent);
+			}
 		} else {
 			currentPage = history.pop();
 			loadPage();
