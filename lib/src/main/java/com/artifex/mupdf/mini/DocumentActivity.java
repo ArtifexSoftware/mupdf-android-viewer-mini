@@ -221,7 +221,7 @@ public class DocumentActivity extends Activity
 
 		try {
 			openInput(uri, size, mimetype);
-		} catch (IOException x) {
+		} catch (Exception x) {
 			Log.e(APP, x.toString());
 			Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
 		}
