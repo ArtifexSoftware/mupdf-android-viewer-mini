@@ -469,11 +469,13 @@ public class DocumentActivity extends Activity
 
 	public void onPause() {
 		super.onPause();
-		SharedPreferences.Editor editor = prefs.edit();
-		editor.putFloat("layoutEm", layoutEm);
-		editor.putBoolean("fitPage", fitPage);
-		editor.putInt(key, currentPage);
-		editor.apply();
+		if (prefs != null) {
+			SharedPreferences.Editor editor = prefs.edit();
+			editor.putFloat("layoutEm", layoutEm);
+			editor.putBoolean("fitPage", fitPage);
+			editor.putInt(key, currentPage);
+			editor.apply();
+		}
 	}
 
 	public void onBackPressed() {
