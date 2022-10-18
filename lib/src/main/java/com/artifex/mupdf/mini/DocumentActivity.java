@@ -223,7 +223,10 @@ public class DocumentActivity extends Activity
 			openInput(uri, size, mimetype);
 		} catch (Exception x) {
 			Log.e(APP, x.toString());
-			Toast.makeText(this, x.getMessage(), Toast.LENGTH_SHORT).show();
+			String text = x.getMessage();
+			if (text == null)
+				text = x.getClass().getName();
+			Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
 		}
 
 		titleLabel = (TextView)findViewById(R.id.title_label);
