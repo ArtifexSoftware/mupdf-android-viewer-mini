@@ -681,7 +681,7 @@ public class DocumentActivity extends Activity
 					links = page.getLinks();
 					if (links != null)
 						for (Link link : links)
-							link.bounds.transform(ctm);
+							link.getBounds().transform(ctm);
 					if (searchNeedle != null) {
 						hits = page.search(searchNeedle);
 						if (hits != null)

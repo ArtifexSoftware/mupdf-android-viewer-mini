@@ -141,12 +141,12 @@ public class PageView extends View implements
 			float mx = (x + dx) / viewScale;
 			float my = (y + dy) / viewScale;
 			for (Link link : links) {
-				Rect b = link.bounds;
+				Rect b = link.getBounds();
 				if (mx >= b.x0 && mx <= b.x1 && my >= b.y0 && my <= b.y1) {
 					if (link.isExternal() && actionListener != null)
-						actionListener.gotoURI(link.uri);
+						actionListener.gotoURI(link.getURI());
 					else if (actionListener != null)
-						actionListener.gotoPage(link.uri);
+						actionListener.gotoPage(link.getURI());
 					foundLink = true;
 					break;
 				}
@@ -286,7 +286,7 @@ public class PageView extends View implements
 
 		if (showLinks && links != null && links.length > 0) {
 			for (Link link : links) {
-				Rect b = link.bounds;
+				Rect b = link.getBounds();
 				canvas.drawRect(
 					x + b.x0 * viewScale,
 					y + b.y0 * viewScale,
