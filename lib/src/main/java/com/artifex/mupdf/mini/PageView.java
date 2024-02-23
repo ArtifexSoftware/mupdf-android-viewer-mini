@@ -80,6 +80,7 @@ public class PageView extends View implements
 		links = null;
 		hits = null;
 		bitmap = null;
+		scroller.forceFinished(true);
 		invalidate();
 	}
 
