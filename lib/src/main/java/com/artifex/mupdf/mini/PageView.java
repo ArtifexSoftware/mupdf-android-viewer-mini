@@ -73,7 +73,7 @@ public class PageView extends View implements
 		actionListener = l;
 	}
 
-	public void setError() {
+	public synchronized void setError() {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = true;
@@ -83,7 +83,7 @@ public class PageView extends View implements
 		invalidate();
 	}
 
-	public void setBitmap(Bitmap b, float zoom, boolean wentBack, Link[] ls, Quad[][] hs) {
+	public synchronized void setBitmap(Bitmap b, float zoom, boolean wentBack, Link[] ls, Quad[][] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
@@ -163,7 +163,7 @@ public class PageView extends View implements
 		return true;
 	}
 
-	public boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
+	public synchronized boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
 		if (bitmap != null) {
 			scrollX += (int)dx;
 			scrollY += (int)dy;
@@ -173,7 +173,7 @@ public class PageView extends View implements
 		return true;
 	}
 
-	public boolean onFling(MotionEvent e1, MotionEvent e2, float dx, float dy) {
+	public synchronized boolean onFling(MotionEvent e1, MotionEvent e2, float dx, float dy) {
 		if (bitmap != null) {
 			int maxX = bitmapW > canvasW ? bitmapW - canvasW : 0;
 			int maxY = bitmapH > canvasH ? bitmapH - canvasH : 0;
@@ -188,7 +188,7 @@ public class PageView extends View implements
 		return true;
 	}
 
-	public boolean onScale(ScaleGestureDetector det) {
+	public synchronized boolean onScale(ScaleGestureDetector det) {
 		if (bitmap != null) {
 			float focusX = det.getFocusX();
 			float focusY = det.getFocusY();
@@ -246,7 +246,7 @@ public class PageView extends View implements
 	private android.graphics.Rect dst = new android.graphics.Rect();
 	private Path path = new Path();
 
-	public void onDraw(Canvas canvas) {
+	public synchronized void onDraw(Canvas canvas) {
 		int x, y;
 
 		if (bitmap == null) {
