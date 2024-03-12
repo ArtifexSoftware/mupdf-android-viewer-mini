@@ -49,7 +49,6 @@ public class LibraryActivity extends Activity
 				intent.putExtra(getComponentName().getPackageName() + ".ReturnToLibraryActivity", 1);
 				startActivity(intent);
 			}
-			finish();
 		} else if (request == FILE_REQUEST && result == Activity.RESULT_CANCELED) {
 			finish();
 		}
