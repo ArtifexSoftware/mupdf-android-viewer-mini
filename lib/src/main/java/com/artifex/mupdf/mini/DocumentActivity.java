@@ -671,7 +671,8 @@ public class DocumentActivity extends Activity
 		stopSearch = true;
 		worker.add(new Worker.Task() {
 			public Bitmap bitmap;
-			public Link[] links;
+			public Rect[] linkBounds;
+			public String[] linkURIs;
 			public Quad[][] hits;
 			public void work() {
 				try {
@@ -683,10 +684,22 @@ public class DocumentActivity extends Activity
 						ctm = AndroidDrawDevice.fitPage(page, canvasW, canvasH);
 					else
 						ctm = AndroidDrawDevice.fitPageWidth(page, canvasW);
-					links = page.getLinks();
-					if (links != null)
-						for (Link link : links)
-							link.getBounds().transform(ctm);
+					Link[] links = page.getLinks();
+					if (links == null)
+					{
+						linkBounds = new Rect[0];
+						linkURIs = new String[0];
+					}
+					else
+					{
+						linkBounds = new Rect[links.length];
+						linkURIs = new String[links.length];
+						for (int i = 0; i < links.length; i++)
+						{
+							linkBounds[i] = links[i].getBounds().transform(ctm);
+							linkURIs[i] = links[i].getURI();
+						}
+					}
 					if (searchNeedle != null) {
 						hits = page.search(searchNeedle);
 						if (hits != null)
@@ -703,7 +716,7 @@ public class DocumentActivity extends Activity
 			}
 			public void run() {
 				if (bitmap != null)
-					pageView.setBitmap(bitmap, zoom, wentBack, links, hits);
+					pageView.setBitmap(bitmap, zoom, wentBack, linkBounds, linkURIs, hits);
 				else
 					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);

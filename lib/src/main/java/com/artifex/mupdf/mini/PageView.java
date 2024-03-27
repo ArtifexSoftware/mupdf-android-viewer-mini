@@ -25,7 +25,8 @@ public class PageView extends View implements
 	protected int bitmapW, bitmapH;
 	protected int canvasW, canvasH;
 	protected int scrollX, scrollY;
-	protected Link[] links;
+	protected Rect[] linkBounds;
+	protected String[] linkURIs;
 	protected Quad[][] hits;
 	protected boolean showLinks;
 
@@ -77,18 +78,20 @@ public class PageView extends View implements
 		if (bitmap != null)
 			bitmap.recycle();
 		error = true;
-		links = null;
+		linkBounds = new Rect[0];
+		linkURIs = new String[0];
 		hits = null;
 		bitmap = null;
 		scroller.forceFinished(true);
 		invalidate();
 	}
 
-	public synchronized void setBitmap(Bitmap b, float zoom, boolean wentBack, Link[] ls, Quad[][] hs) {
+	public synchronized void setBitmap(Bitmap b, float zoom, boolean wentBack, Rect[] lbs, String[] lus, Quad[][] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
-		links = ls;
+		linkBounds = lbs;
+		linkURIs = lus;
 		hits = hs;
 		bitmap = b;
 		bitmapW = (int)(bitmap.getWidth() * viewScale / zoom);
@@ -136,18 +139,18 @@ public class PageView extends View implements
 		boolean foundLink = false;
 		float x = e.getX();
 		float y = e.getY();
-		if (showLinks && links != null) {
+		if (showLinks) {
 			float dx = (bitmapW <= canvasW) ? (bitmapW - canvasW) / 2 : scrollX;
 			float dy = (bitmapH <= canvasH) ? (bitmapH - canvasH) / 2 : scrollY;
 			float mx = (x + dx) / viewScale;
 			float my = (y + dy) / viewScale;
-			for (Link link : links) {
-				Rect b = link.getBounds();
+			for (int i = 0; i < linkBounds.length; i++) {
+				Rect b = linkBounds[i];
 				if (mx >= b.x0 && mx <= b.x1 && my >= b.y0 && my <= b.y1) {
-					if (link.isExternal() && actionListener != null)
-						actionListener.gotoURI(link.getURI());
+					if (Link.isExternal(linkURIs[i]) && actionListener != null)
+						actionListener.gotoURI(linkURIs[i]);
 					else if (actionListener != null)
-						actionListener.gotoPage(link.getURI());
+						actionListener.gotoPage(linkURIs[i]);
 					foundLink = true;
 					break;
 				}
@@ -285,9 +288,8 @@ public class PageView extends View implements
 		dst.set(x, y, x + bitmapW, y + bitmapH);
 		canvas.drawBitmap(bitmap, null, dst, null);
 
-		if (showLinks && links != null && links.length > 0) {
-			for (Link link : links) {
-				Rect b = link.getBounds();
+		if (showLinks) {
+			for (Rect b : linkBounds) {
 				canvas.drawRect(
 					x + b.x0 * viewScale,
 					y + b.y0 * viewScale,
