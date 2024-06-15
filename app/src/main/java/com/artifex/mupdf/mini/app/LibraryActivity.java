@@ -12,30 +12,36 @@ import com.artifex.mupdf.mini.DocumentActivity;
 public class LibraryActivity extends Activity
 {
 	protected final int FILE_REQUEST = 42;
+	protected boolean selectingDocument;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		selectingDocument = false;
 	}
 
 	public void onStart() {
 		super.onStart();
-		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-		intent.addCategory(Intent.CATEGORY_OPENABLE);
-		intent.setType("*/*");
-		intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
-			// open the mime-types we know about
-			"application/pdf",
-			"application/vnd.ms-xpsdocument",
-			"application/oxps",
-			"application/x-cbz",
-			"application/vnd.comicbook+zip",
-			"application/epub+zip",
-			"application/x-fictionbook",
-			"application/x-mobipocket-ebook",
-			// ... and the ones android doesn't know about
-			"application/octet-stream"
-		});
-		startActivityForResult(intent, FILE_REQUEST);
+		if (!selectingDocument)
+		{
+			Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+			intent.addCategory(Intent.CATEGORY_OPENABLE);
+			intent.setType("*/*");
+			intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
+				// open the mime-types we know about
+				"application/pdf",
+				"application/vnd.ms-xpsdocument",
+				"application/oxps",
+				"application/x-cbz",
+				"application/vnd.comicbook+zip",
+				"application/epub+zip",
+				"application/x-fictionbook",
+				"application/x-mobipocket-ebook",
+				// ... and the ones android doesn't know about
+				"application/octet-stream"
+			});
+			startActivityForResult(intent, FILE_REQUEST);
+			selectingDocument = true;
+		}
 	}
 
 	public void onActivityResult(int request, int result, Intent data) {
@@ -52,5 +58,6 @@ public class LibraryActivity extends Activity
 		} else if (request == FILE_REQUEST && result == Activity.RESULT_CANCELED) {
 			finish();
 		}
+		selectingDocument = false;
 	}
 }
