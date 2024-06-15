@@ -55,6 +55,8 @@ public class LibraryActivity extends Activity
 				intent.putExtra(getComponentName().getPackageName() + ".ReturnToLibraryActivity", 1);
 				startActivity(intent);
 			}
+			if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.S_V2)
+				finish();
 		} else if (request == FILE_REQUEST && result == Activity.RESULT_CANCELED) {
 			finish();
 		}
