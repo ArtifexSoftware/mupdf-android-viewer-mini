@@ -8,6 +8,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -18,6 +19,8 @@ public class PageView extends View implements
 	GestureDetector.OnGestureListener,
 	ScaleGestureDetector.OnScaleGestureListener
 {
+	private final String APP = "MuPDF";
+
 	protected DocumentActivity actionListener;
 
 	protected float pageScale, viewScale, minScale, maxScale;

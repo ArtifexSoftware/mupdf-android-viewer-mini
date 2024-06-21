@@ -11,6 +11,8 @@ import com.artifex.mupdf.mini.DocumentActivity;
 
 public class LibraryActivity extends Activity
 {
+	private final String APP = "MuPDF";
+
 	protected final int FILE_REQUEST = 42;
 	protected boolean selectingDocument;
 
