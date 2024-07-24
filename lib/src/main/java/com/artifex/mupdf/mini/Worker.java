@@ -35,7 +35,7 @@ public class Worker implements Runnable
 		try {
 			queue.put(task);
 		} catch (InterruptedException x) {
-			Log.e("MuPDF Worker", x.getMessage());
+			Log.e("MuPDF-Worker", x.getMessage());
 		}
 	}
 
@@ -46,7 +46,7 @@ public class Worker implements Runnable
 				task.work();
 				activity.runOnUiThread(task);
 			} catch (final Throwable x) {
-				Log.e("MuPDF Worker", x.getMessage());
+				Log.e("MuPDF-Worker", x.getMessage());
 				activity.runOnUiThread(new Runnable() {
 					public void run() {
 						Toast.makeText(activity, x.getMessage(), Toast.LENGTH_SHORT).show();
