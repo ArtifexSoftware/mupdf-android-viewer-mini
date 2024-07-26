@@ -142,7 +142,7 @@ public class PageView extends View implements
 		boolean foundLink = false;
 		float x = e.getX();
 		float y = e.getY();
-		if (showLinks) {
+		if (showLinks && linkBounds != null) {
 			float dx = (bitmapW <= canvasW) ? (bitmapW - canvasW) / 2 : scrollX;
 			float dy = (bitmapH <= canvasH) ? (bitmapH - canvasH) / 2 : scrollY;
 			float mx = (x + dx) / viewScale;
@@ -291,7 +291,7 @@ public class PageView extends View implements
 		dst.set(x, y, x + bitmapW, y + bitmapH);
 		canvas.drawBitmap(bitmap, null, dst, null);
 
-		if (showLinks) {
+		if (showLinks && linkBounds != null) {
 			for (Rect b : linkBounds) {
 				canvas.drawRect(
 					x + b.x0 * viewScale,
