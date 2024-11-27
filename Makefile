@@ -24,6 +24,13 @@ tarball: release
 		mupdf-$(shell git describe --tags)-android-mini.apk
 	cp app/build/outputs/bundle/release/app-release.aab \
 		mupdf-$(shell git describe --tags)-android-mini-app-release.aab
+synctarball: tarball
+	rsync -av --chmod=g+w --chown=:gs-web \
+		mupdf-$(shell git describe --tags)-android-mini.apk \
+		ghostscript.com:/var/www/mupdf.com/downloads/archive/mupdf-$(shell git describe --tags)-android-mini.apk
+	rsync -av --chmod=g+w --chown=:gs-web \
+		mupdf-$(shell git describe --tags)-android-mini-app-release.aab \
+		ghostscript.com:/var/www/mupdf.com/downloads/archive/mupdf-$(shell git describe --tags)-android-mini-app-release.aab
 
 run: install
 	adb shell am start -n com.artifex.mupdf.mini.app/.LibraryActivity
