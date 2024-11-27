@@ -7,3 +7,5 @@ android.keystore
 build
 local.properties
 tags
+mupdf-*-android-mini.apk
+mupdf-*-android-mini-app-release.aab
