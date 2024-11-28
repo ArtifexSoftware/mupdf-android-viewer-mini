@@ -18,6 +18,9 @@ sync: archive
 	rsync -av --chmod=g+w --chown=:gs-web \
 		$(HOME)/MAVEN/com/artifex/mupdf/mini/$(shell git describe --tags)/ \
 		ghostscript.com:/var/www/maven.ghostscript.com/com/artifex/mupdf/mini/$(shell git describe --tags)/
+	rsync -av --chmod=g+w --chown=:gs-web \
+		$(HOME)/MAVEN/com/artifex/mupdf/mini/maven-metadata.xml*/ \
+		ghostscript.com:/var/www/maven.ghostscript.com/com/artifex/mupdf/mini/
 
 tarball: release
 	cp app/build/outputs/apk/release/app-universal-release.apk \
