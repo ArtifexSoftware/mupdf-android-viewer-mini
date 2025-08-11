@@ -8,6 +8,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Worker implements Runnable
 {
+	private final String APP = "MuPDF-Worker";
+
 	public static class Task implements Runnable {
 		public void work() {} /* The 'work' method will be executed on the background thread. */
 		public void run() {} /* The 'run' method will be executed on the UI thread. */
@@ -35,7 +37,7 @@ public class Worker implements Runnable
 		try {
 			queue.put(task);
 		} catch (InterruptedException x) {
-			Log.e("MuPDF-Worker", x.getMessage());
+			Log.e(APP, x.getMessage());
 		}
 	}
 
@@ -46,7 +48,7 @@ public class Worker implements Runnable
 				task.work();
 				activity.runOnUiThread(task);
 			} catch (final Throwable x) {
-				Log.e("MuPDF-Worker", x.getMessage());
+				Log.e(APP, x.getMessage());
 				activity.runOnUiThread(new Runnable() {
 					public void run() {
 						Toast.makeText(activity, x.getMessage(), Toast.LENGTH_SHORT).show();
