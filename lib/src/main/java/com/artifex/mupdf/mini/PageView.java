@@ -89,7 +89,7 @@ public class PageView extends View implements
 		invalidate();
 	}
 
-	public synchronized void setBitmap(Bitmap b, float zoom, boolean wentBack, Rect[] lbs, String[] lus, Quad[][] hs) {
+	public synchronized void setBitmap(Bitmap b, float zoom, boolean wentBack, boolean toggledUI, Rect[] lbs, String[] lus, Quad[][] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
@@ -100,7 +100,8 @@ public class PageView extends View implements
 		bitmapW = (int)(bitmap.getWidth() * viewScale / zoom);
 		bitmapH = (int)(bitmap.getHeight() * viewScale / zoom);
 		scroller.forceFinished(true);
-		if (pageScale == zoom) {
+		if (!toggledUI && pageScale == zoom)
+		{
 			scrollX = wentBack ? bitmapW - canvasW : 0;
 			scrollY = wentBack ? bitmapH - canvasH : 0;
 		}

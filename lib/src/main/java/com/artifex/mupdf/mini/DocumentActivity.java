@@ -14,7 +14,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Insets;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUriExposedException;
 import android.os.ParcelFileDescriptor;
@@ -28,6 +31,7 @@ import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -44,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Stack;
 
 public class DocumentActivity extends Activity
@@ -54,6 +59,8 @@ public class DocumentActivity extends Activity
 
 	protected final int MAXIMUM_OUTLINE_ITEMS = 1000;
 	protected final int MAXIMUM_OUTLINE_DEPTH = 4;
+
+	protected final float EXCLUSION_HEIGHT_FACTOR = 2.0f;
 
 	protected Worker worker;
 	protected SharedPreferences prefs;
@@ -90,7 +97,9 @@ public class DocumentActivity extends Activity
 	protected View layoutButton;
 	protected PopupMenu layoutPopupMenu;
 	protected View outlineButton;
-	protected View navigationBar;
+	protected View bottomBar;
+	protected View backgroundLayout;
+	protected View topBar;
 	protected TextView pageLabel;
 	protected SeekBar pageSeekbar;
 
@@ -101,6 +110,8 @@ public class DocumentActivity extends Activity
 	protected boolean stopSearch;
 	protected Stack<Integer> history;
 	protected boolean wentBack;
+	protected boolean toggledUI;
+	protected Insets systemInsets = Insets.NONE;
 
 	private String toHex(byte[] digest) {
 		StringBuilder builder = new StringBuilder(2 * digest.length);
@@ -163,7 +174,9 @@ public class DocumentActivity extends Activity
 		setContentView(R.layout.document_activity);
 		actionBar = findViewById(R.id.action_bar);
 		searchBar = findViewById(R.id.search_bar);
-		navigationBar = findViewById(R.id.navigation_bar);
+		bottomBar = findViewById(R.id.bottom_bar);
+		backgroundLayout = findViewById(R.id.background_layout);
+		topBar = findViewById(R.id.top_bar);
 
 		currentBar = actionBar;
 
@@ -360,6 +373,39 @@ public class DocumentActivity extends Activity
 				layoutPopupMenu.show();
 			}
 		});
+
+		topBar.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+				public WindowInsets onApplyWindowInsets(View v, WindowInsets windowInsets)
+				{
+					applyInsets(windowInsets);
+					return WindowInsets.CONSUMED;
+				}
+		});
+
+		if (Build.VERSION.SDK_INT >= 29)
+			bottomBar.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+				public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+					View parent = (View) v.getParent();
+					android.graphics.Rect exclusion;
+
+					exclusion = new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight());
+					v.setSystemGestureExclusionRects(Collections.singletonList(exclusion));
+
+					int extended_top = parent.getHeight() - (int) (EXCLUSION_HEIGHT_FACTOR * v.getHeight());
+					exclusion = new android.graphics.Rect(0, extended_top, parent.getWidth(), parent.getHeight());
+					parent.setSystemGestureExclusionRects(Collections.singletonList(exclusion));
+				}
+			});
+	}
+
+	protected void applyInsets(WindowInsets windowInsets) {
+		systemInsets = Insets.NONE;
+		Insets systemBarInsets = windowInsets.getInsets(WindowInsets.Type.systemBars());
+		systemInsets = Insets.max(systemInsets, systemBarInsets);
+		Insets cutoutInsets = windowInsets.getInsets(WindowInsets.Type.displayCutout());
+		systemInsets = Insets.max(systemInsets, cutoutInsets);
+		topBar.setPadding(0, systemInsets.top, 0, 0);
+		bottomBar.setPadding(0, 0, 0, systemInsets.bottom);
 	}
 
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -730,13 +776,14 @@ public class DocumentActivity extends Activity
 			}
 			public void run() {
 				if (bitmap != null)
-					pageView.setBitmap(bitmap, zoom, wentBack, linkBounds, linkURIs, hits);
+					pageView.setBitmap(bitmap, zoom, wentBack, toggledUI, linkBounds, linkURIs, hits);
 				else
 					pageView.setError();
 				pageLabel.setText((currentPage+1) + " / " + pageCount);
 				pageSeekbar.setMax(pageCount - 1);
 				pageSeekbar.setProgress(pageNumber);
 				wentBack = false;
+				toggledUI = false;
 			}
 		});
 	}
@@ -758,14 +805,17 @@ public class DocumentActivity extends Activity
 	}
 
 	public void toggleUI() {
-		if (navigationBar.getVisibility() == View.VISIBLE) {
+		toggledUI = true;
+		if (bottomBar.getVisibility() == View.VISIBLE) {
+			topBar.setVisibility(View.GONE);
 			currentBar.setVisibility(View.GONE);
-			navigationBar.setVisibility(View.GONE);
+			bottomBar.setVisibility(View.GONE);
 			if (currentBar == searchBar)
 				hideKeyboard();
 		} else {
+			topBar.setVisibility(View.VISIBLE);
 			currentBar.setVisibility(View.VISIBLE);
-			navigationBar.setVisibility(View.VISIBLE);
+			bottomBar.setVisibility(View.VISIBLE);
 			if (currentBar == searchBar) {
 				searchBar.requestFocus();
 				showKeyboard();
