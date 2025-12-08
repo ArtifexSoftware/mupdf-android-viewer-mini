@@ -52,6 +52,9 @@ public class DocumentActivity extends Activity
 
 	public final int NAVIGATE_REQUEST = 1;
 
+	protected final int MAXIMUM_OUTLINE_ITEMS = 1000;
+	protected final int MAXIMUM_OUTLINE_DEPTH = 4;
+
 	protected Worker worker;
 	protected SharedPreferences prefs;
 
@@ -637,15 +640,24 @@ public class DocumentActivity extends Activity
 
 	private void loadOutline() {
 		worker.add(new Worker.Task() {
-			private void flattenOutline(Outline[] outline, String indent) {
+			boolean outlineTruncated = false;
+			private void flattenOutline(Outline[] outline, String indent, int depth) {
 				for (Outline node : outline) {
 					if (node.title != null)
 					{
 						int outlinePage = doc.pageNumberFromLocation(doc.resolveLink(node));
-						flatOutline.add(new OutlineActivity.Item(indent + node.title, node.uri, outlinePage));
+						if (flatOutline.size() >= MAXIMUM_OUTLINE_ITEMS)
+							outlineTruncated = true;
+						else
+							flatOutline.add(new OutlineActivity.Item(indent + node.title, node.uri, outlinePage));
 					}
 					if (node.down != null)
-						flattenOutline(node.down, indent + "    ");
+					{
+						if (depth >= MAXIMUM_OUTLINE_DEPTH || flatOutline.size() >= MAXIMUM_OUTLINE_ITEMS)
+							outlineTruncated = true;
+						else
+							flattenOutline(node.down, indent + "    ", depth + 1);
+					}
 				}
 			}
 			public void work() {
@@ -653,7 +665,7 @@ public class DocumentActivity extends Activity
 				Outline[] outline = doc.loadOutline();
 				if (outline != null) {
 					flatOutline = new ArrayList<OutlineActivity.Item>();
-					flattenOutline(outline, "");
+					flattenOutline(outline, "", 0);
 				} else {
 					flatOutline = null;
 				}
@@ -661,6 +673,8 @@ public class DocumentActivity extends Activity
 			public void run() {
 				if (flatOutline != null)
 					outlineButton.setVisibility(View.VISIBLE);
+				if (outlineTruncated)
+					Toast.makeText(DocumentActivity.this, getString(R.string.toast_outline_too_large), Toast.LENGTH_SHORT).show();
 			}
 		});
 	}
