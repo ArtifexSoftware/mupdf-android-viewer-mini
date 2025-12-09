@@ -23,6 +23,7 @@ import android.os.FileUriExposedException;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.text.Editable;
+import android.text.TextPaint;
 import android.text.TextWatcher;
 import android.text.method.PasswordTransformationMethod;
 import android.util.DisplayMetrics;
@@ -103,6 +104,7 @@ public class DocumentActivity extends Activity
 	protected TextView pageLabel;
 	protected SeekBar pageSeekbar;
 
+	protected boolean pageCountChanged;
 	protected int pageCount;
 	protected int currentPage;
 	protected int searchHitPage;
@@ -399,6 +401,27 @@ public class DocumentActivity extends Activity
 	}
 
 	protected void showPageNumber(int pageNumber) {
+		if (pageCountChanged && bottomBar.getVisibility() == View.VISIBLE)
+		{
+			// set width of longest possible text as minimum width this
+			// ensures that the size of pageLabel doesn't change whether
+			// it renders 1 / pageCount or pageCount / pageCount,
+			// which makes pageSeekbar to the left of pageLabel also have
+			// a stable width.
+
+			TextPaint paint = pageLabel.getPaint();
+			float maxWidth =
+				pageLabel.getPaddingLeft() +
+				paint.measureText(pageCount + " / " + pageCount) + // longest possible text
+				pageLabel.getPaddingRight();
+			int minWidth = (int) Math.ceil(maxWidth);
+			if (minWidth > 0)
+			{
+				pageLabel.setMinWidth(minWidth);
+				pageCountChanged = false;
+			}
+		}
+
 		pageLabel.setText(pageNumber + " / " + pageCount);
 	}
 
@@ -645,14 +668,17 @@ public class DocumentActivity extends Activity
 						doc.layout(layoutW, layoutH, layoutEm);
 					}
 					pageCount = doc.countPages();
+					pageCountChanged = true;
 				} catch (Throwable x) {
 					doc = null;
 					pageCount = 1;
+					pageCountChanged = true;
 					currentPage = 0;
 					throw x;
 				}
 			}
 			public void run() {
+				pageCountChanged = true;
 				if (currentPage < 0 || currentPage >= pageCount)
 					currentPage = 0;
 				titleLabel.setText(title);
@@ -682,6 +708,7 @@ public class DocumentActivity extends Activity
 				}
 			}
 			public void run() {
+				pageCountChanged = true;
 				loadPage();
 				loadOutline();
 			}
@@ -820,6 +847,7 @@ public class DocumentActivity extends Activity
 			topBar.setVisibility(View.VISIBLE);
 			currentBar.setVisibility(View.VISIBLE);
 			bottomBar.setVisibility(View.VISIBLE);
+			showPageNumber(currentPage + 1);
 			if (currentBar == searchBar) {
 				searchBar.requestFocus();
 				showKeyboard();

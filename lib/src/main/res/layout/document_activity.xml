@@ -134,7 +134,7 @@
 				android:max="0"
 				/>
 		<TextView android:id="@+id/page_label"
-				android:layout_width="110dp"
+				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:layout_gravity="center"
 				android:textColor="#FFFFFF"
