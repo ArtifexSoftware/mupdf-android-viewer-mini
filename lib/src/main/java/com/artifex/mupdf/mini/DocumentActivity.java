@@ -114,6 +114,7 @@ public class DocumentActivity extends Activity
 	protected boolean wentBack;
 	protected boolean toggledUI;
 	protected Insets systemInsets = Insets.NONE;
+	protected boolean newSearchHitPage;
 
 	private String toHex(byte[] digest) {
 		StringBuilder builder = new StringBuilder(2 * digest.length);
@@ -607,6 +608,7 @@ public class DocumentActivity extends Activity
 					Quad[][] hits = page.search(searchNeedle);
 					page.destroy();
 					if (hits != null && hits.length > 0) {
+						newSearchHitPage = true;
 						searchHitPage = searchPage;
 						break;
 					}
@@ -807,7 +809,7 @@ public class DocumentActivity extends Activity
 			}
 			public void run() {
 				if (bitmap != null)
-					pageView.setBitmap(bitmap, zoom, wentBack, toggledUI, linkBounds, linkURIs, hits);
+					pageView.setBitmap(bitmap, zoom, wentBack, toggledUI, newSearchHitPage, linkBounds, linkURIs, hits);
 				else
 					pageView.setError();
 				showPageNumber(currentPage + 1);
@@ -815,6 +817,7 @@ public class DocumentActivity extends Activity
 				pageSeekbar.setProgress(pageNumber);
 				wentBack = false;
 				toggledUI = false;
+				newSearchHitPage = false;
 			}
 		});
 	}

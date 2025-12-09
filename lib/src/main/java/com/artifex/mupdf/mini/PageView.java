@@ -89,7 +89,7 @@ public class PageView extends View implements
 		invalidate();
 	}
 
-	public synchronized void setBitmap(Bitmap b, float zoom, boolean wentBack, boolean toggledUI, Rect[] lbs, String[] lus, Quad[][] hs) {
+	public synchronized void setBitmap(Bitmap b, float zoom, boolean wentBack, boolean toggledUI, boolean scrollToFirstSearchHit, Rect[] lbs, String[] lus, Quad[][] hs) {
 		if (bitmap != null)
 			bitmap.recycle();
 		error = false;
@@ -100,7 +100,35 @@ public class PageView extends View implements
 		bitmapW = (int)(bitmap.getWidth() * viewScale / zoom);
 		bitmapH = (int)(bitmap.getHeight() * viewScale / zoom);
 		scroller.forceFinished(true);
-		if (!toggledUI && pageScale == zoom)
+		if (scrollToFirstSearchHit && hits != null)
+		{
+			float top = bitmapH;
+			float left = bitmapW;
+
+			for (Quad[] hit : hits)
+			{
+				for (Quad q : hit) {
+					if (q.ul_x * viewScale < left) left = q.ul_x * viewScale;
+					if (q.ll_x * viewScale < left) left = q.ll_x * viewScale;
+					if (q.lr_x * viewScale < left) left = q.lr_x * viewScale;
+					if (q.ur_x * viewScale < left) left = q.ur_x * viewScale;
+
+					if (q.ul_y * viewScale < top) top = q.ul_y * viewScale;
+					if (q.ll_y * viewScale < top) top = q.ll_y * viewScale;
+					if (q.lr_y * viewScale < top) top = q.lr_y * viewScale;
+					if (q.ur_y * viewScale < top) top = q.ur_y * viewScale;
+				}
+			}
+
+			scrollX = (int) (left + 0.5f) - canvasW / 2;
+			scrollY = (int) (top + 0.5f) - canvasH / 2;
+
+			if (scrollX < 0) scrollX = 0;
+			if (scrollY < 0) scrollY = 0;
+			if (scrollX > bitmapW - canvasW) scrollX = bitmapW - canvasW;
+			if (scrollY > bitmapW - canvasW) scrollY = bitmapW - canvasW;
+		}
+		else if (!toggledUI && pageScale == zoom)
 		{
 			scrollX = wentBack ? bitmapW - canvasW : 0;
 			scrollY = wentBack ? bitmapH - canvasH : 0;
