@@ -270,7 +270,7 @@ public class DocumentActivity extends Activity
 			public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
 				if (fromUser) {
 					newProgress = progress;
-					pageLabel.setText((progress+1) + " / " + pageCount);
+					showPageNumber(progress + 1);
 				}
 			}
 			public void onStartTrackingTouch(SeekBar seekbar) {}
@@ -396,6 +396,10 @@ public class DocumentActivity extends Activity
 					parent.setSystemGestureExclusionRects(Collections.singletonList(exclusion));
 				}
 			});
+	}
+
+	protected void showPageNumber(int pageNumber) {
+		pageLabel.setText(pageNumber + " / " + pageCount);
 	}
 
 	protected void applyInsets(WindowInsets windowInsets) {
@@ -590,7 +594,7 @@ public class DocumentActivity extends Activity
 			}
 			public void run() {
 				if (stopSearch || needle != searchNeedle) {
-					pageLabel.setText((currentPage+1) + " / " + pageCount);
+					showPageNumber(currentPage + 1);
 				} else if (searchHitPage == currentPage) {
 					loadPage();
 				} else if (searchHitPage >= 0) {
@@ -599,10 +603,10 @@ public class DocumentActivity extends Activity
 					loadPage();
 				} else {
 					if (searchPage >= 0 && searchPage < pageCount) {
-						pageLabel.setText((searchPage+1) + " / " + pageCount);
+						showPageNumber(searchPage + 1);
 						worker.add(this);
 					} else {
-						pageLabel.setText((currentPage+1) + " / " + pageCount);
+						showPageNumber(currentPage + 1);
 						Log.i(APP, "search not found");
 						Toast.makeText(DocumentActivity.this, getString(R.string.toast_search_not_found), Toast.LENGTH_SHORT).show();
 					}
@@ -779,7 +783,7 @@ public class DocumentActivity extends Activity
 					pageView.setBitmap(bitmap, zoom, wentBack, toggledUI, linkBounds, linkURIs, hits);
 				else
 					pageView.setError();
-				pageLabel.setText((currentPage+1) + " / " + pageCount);
+				showPageNumber(currentPage + 1);
 				pageSeekbar.setMax(pageCount - 1);
 				pageSeekbar.setProgress(pageNumber);
 				wentBack = false;
