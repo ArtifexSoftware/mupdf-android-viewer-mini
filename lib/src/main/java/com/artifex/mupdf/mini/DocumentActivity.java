@@ -171,7 +171,7 @@ public class DocumentActivity extends Activity
 		mimetype = getIntent().getType();
 
 		if (uri == null) {
-			Toast.makeText(this, "No document uri to open", Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, getString(R.string.toast_no_document_uri), Toast.LENGTH_SHORT).show();
 			return;
 		}
 
@@ -807,7 +807,7 @@ public class DocumentActivity extends Activity
 			startActivity(intent);
 		} catch (FileUriExposedException x) {
 			Log.e(APP, x.toString());
-			Toast.makeText(DocumentActivity.this, "Android does not allow following file:// link: " + uri, Toast.LENGTH_LONG).show();
+			Toast.makeText(DocumentActivity.this, getString(R.string.toast_file_uris_not_allowed) + uri, Toast.LENGTH_LONG).show();
 		} catch (Throwable x) {
 			Log.e(APP, x.getMessage());
 			Toast.makeText(DocumentActivity.this, x.getMessage(), Toast.LENGTH_SHORT).show();

@@ -6,4 +6,6 @@
 	<string name="text_search_hint">Search&#x2026;</string>
 	<string name="toast_search_not_found">Search not found.</string>
 	<string name="toast_outline_too_large">Outline too large, truncated.</string>
+	<string name="toast_no_document_uri">No document uri to open.</string>
+	<string name="toast_file_uris_not_allowed">Android does not allow following file:// link: </string>
 </resources>
