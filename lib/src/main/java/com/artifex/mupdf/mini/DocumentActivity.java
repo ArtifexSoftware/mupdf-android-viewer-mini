@@ -710,6 +710,7 @@ public class DocumentActivity extends Activity
 				}
 			}
 			public void run() {
+				history.clear();
 				pageCountChanged = true;
 				loadPage();
 				loadOutline();
