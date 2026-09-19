@@ -38,6 +38,13 @@
 					android:ellipsize="end"
 					android:textSize="16sp"
 					/>
+			<ImageButton android:id="@+id/color_invert_button"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_gravity="center"
+					android:background="@drawable/button"
+					android:src="@drawable/ic_invert_white_24dp"
+					/>
 			<ImageButton android:id="@+id/search_button"
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
