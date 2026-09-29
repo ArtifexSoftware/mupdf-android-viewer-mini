@@ -88,6 +88,7 @@ public class DocumentActivity extends Activity
 	protected PageView pageView;
 	protected View actionBar;
 	protected TextView titleLabel;
+	protected View luminanceInvertButton;
 	protected View searchButton;
 	protected View searchBar;
 	protected EditText searchText;
@@ -115,6 +116,7 @@ public class DocumentActivity extends Activity
 	protected boolean toggledUI;
 	protected Insets systemInsets = Insets.NONE;
 	protected boolean newSearchHitPage;
+	protected boolean invertLuminance;
 
 	private String toHex(byte[] digest) {
 		StringBuilder builder = new StringBuilder(2 * digest.length);
@@ -259,6 +261,7 @@ public class DocumentActivity extends Activity
 		prefs = getPreferences(Context.MODE_PRIVATE);
 		layoutEm = prefs.getFloat("layoutEm", 8);
 		fitPage = prefs.getBoolean("fitPage", false);
+		invertLuminance = prefs.getBoolean("invertLuminance", false);
 		currentPage = prefs.getInt(key, 0);
 		searchHitPage = -1;
 		hasLoaded = false;
@@ -279,6 +282,15 @@ public class DocumentActivity extends Activity
 			public void onStartTrackingTouch(SeekBar seekbar) {}
 			public void onStopTrackingTouch(SeekBar seekbar) {
 				gotoPage(newProgress);
+			}
+		});
+
+		luminanceInvertButton = findViewById(R.id.color_invert_button);
+		luminanceInvertButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				Log.i(APP, "Inverted colour");
+				invertLuminance = !invertLuminance;
+				loadPage();
 			}
 		});
 
@@ -553,6 +565,7 @@ public class DocumentActivity extends Activity
 			SharedPreferences.Editor editor = prefs.edit();
 			editor.putFloat("layoutEm", layoutEm);
 			editor.putBoolean("fitPage", fitPage);
+			editor.putBoolean("invertLuminance", invertLuminance);
 			editor.putInt(key, currentPage);
 			editor.apply();
 		}
@@ -804,6 +817,11 @@ public class DocumentActivity extends Activity
 					if (zoom != 1)
 						ctm.scale(zoom);
 					bitmap = AndroidDrawDevice.drawPage(page, ctm);
+					if (invertLuminance) {
+						AndroidDrawDevice dev = new AndroidDrawDevice(bitmap, false);
+						dev.invertLuminance();
+						dev.close();
+					}
 				} catch (Throwable x) {
 					Log.e(APP, x.getMessage());
 				}
