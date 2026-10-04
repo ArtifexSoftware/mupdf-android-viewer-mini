@@ -8,4 +8,6 @@
 	<string name="toast_outline_too_large">Outline too large, truncated.</string>
 	<string name="toast_no_document_uri">No document uri to open.</string>
 	<string name="toast_file_uris_not_allowed">Android does not allow following file:// link: </string>
+	<string name="share_document">Share document</string>
+	<string name="toast_no_apps_to_share">No apps available to share with</string>
 </resources>

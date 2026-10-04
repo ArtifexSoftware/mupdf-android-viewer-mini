@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="MuPDFTheme" parent="android:Theme.Holo">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowActionBar">true</item>
+        <item name="android:actionBarStyle">@style/ActionBarStyle</item>
+    </style>
+    <style name="ActionBarStyle" parent="android:Widget.Holo.ActionBar">
+        <item name="android:background">#303030</item>
+        <item name="android:titleTextStyle">@style/ActionBarTitleTextStyle</item>
+    </style>
+    <style name="ActionBarTitleTextStyle" parent="android:TextAppearance.Holo">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+</resources>

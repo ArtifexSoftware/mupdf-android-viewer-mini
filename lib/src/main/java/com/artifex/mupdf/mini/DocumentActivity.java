@@ -4,11 +4,13 @@ import com.artifex.mupdf.fitz.*;
 import com.artifex.mupdf.fitz.android.*;
 
 import android.Manifest;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -29,6 +31,7 @@ import android.text.method.PasswordTransformationMethod;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
@@ -38,6 +41,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.PopupMenu;
+import android.widget.SearchView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -86,23 +90,17 @@ public class DocumentActivity extends Activity
 
 	protected View currentBar;
 	protected PageView pageView;
-	protected View actionBar;
 	protected TextView titleLabel;
-	protected View searchButton;
-	protected View searchBar;
-	protected EditText searchText;
-	protected View searchCloseButton;
-	protected View searchBackwardButton;
-	protected View searchForwardButton;
-	protected View zoomButton;
-	protected View layoutButton;
-	protected PopupMenu layoutPopupMenu;
-	protected View outlineButton;
 	protected View bottomBar;
 	protected View backgroundLayout;
-	protected View topBar;
+	protected ActionBar actionBar;
 	protected TextView pageLabel;
 	protected SeekBar pageSeekbar;
+	private Menu actionBarMenu;
+	private SearchView searchView;
+	private MenuItem searchMenuItem;
+	private MenuItem searchPreviousMenuItem;
+	private MenuItem searchNextMenuItem;
 
 	protected boolean pageCountChanged;
 	protected int pageCount;
@@ -167,21 +165,36 @@ public class DocumentActivity extends Activity
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
 		DisplayMetrics metrics = new DisplayMetrics();
 		getWindowManager().getDefaultDisplay().getMetrics(metrics);
 		displayDPI = metrics.densityDpi;
 
 		setContentView(R.layout.document_activity);
-		actionBar = findViewById(R.id.action_bar);
-		searchBar = findViewById(R.id.search_bar);
 		bottomBar = findViewById(R.id.bottom_bar);
 		backgroundLayout = findViewById(R.id.background_layout);
-		topBar = findViewById(R.id.top_bar);
+		actionBar = getActionBar();
 
-		currentBar = actionBar;
+		// Enable edge-to-edge mode with ActionBar
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+			getWindow().setDecorFitsSystemWindows(false);
+		} else {
+			getWindow().getDecorView().setSystemUiVisibility(
+				View.SYSTEM_UI_FLAG_LAYOUT_STABLE | 
+				View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | 
+				View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+			);
+		}
+
+		// Set up window insets listener for edge-to-edge
+		backgroundLayout.setOnApplyWindowInsetsListener((v, insets) -> {
+			applyInsets(insets);
+			return insets;
+		});
+
+		actionBar.hide();
+		actionBar.setDisplayHomeAsUpEnabled(false);
+		actionBar.setTitle(title);
 
 		Uri uri = getIntent().getData();
 		mimetype = getIntent().getType();
@@ -248,9 +261,6 @@ public class DocumentActivity extends Activity
 			Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
 		}
 
-		titleLabel = (TextView)findViewById(R.id.title_label);
-		titleLabel.setText(title);
-
 		history = new Stack<Integer>();
 
 		worker = new Worker(this);
@@ -280,109 +290,6 @@ public class DocumentActivity extends Activity
 			public void onStopTrackingTouch(SeekBar seekbar) {
 				gotoPage(newProgress);
 			}
-		});
-
-		searchButton = findViewById(R.id.search_button);
-		searchButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				showSearch();
-			}
-		});
-		searchText = (EditText)findViewById(R.id.search_text);
-		searchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-				if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_DOWN) {
-					search(1);
-					return true;
-				}
-				if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-					search(1);
-					return true;
-				}
-				return false;
-			}
-		});
-		searchText.addTextChangedListener(new TextWatcher() {
-			public void afterTextChanged(Editable s) {}
-			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-			public void onTextChanged(CharSequence s, int start, int before, int count) {
-				resetSearch();
-			}
-		});
-		searchCloseButton = findViewById(R.id.search_close_button);
-		searchCloseButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				hideSearch();
-			}
-		});
-		searchBackwardButton = findViewById(R.id.search_backward_button);
-		searchBackwardButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				search(-1);
-			}
-		});
-		searchForwardButton = findViewById(R.id.search_forward_button);
-		searchForwardButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				search(1);
-			}
-		});
-
-		outlineButton = findViewById(R.id.outline_button);
-		outlineButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				Intent intent = new Intent(DocumentActivity.this, OutlineActivity.class);
-				Bundle bundle = new Bundle();
-				bundle.putInt("POSITION", currentPage);
-				bundle.putSerializable("OUTLINE", flatOutline);
-				intent.putExtras(bundle);
-				startActivityForResult(intent, NAVIGATE_REQUEST);
-			}
-		});
-
-		zoomButton = findViewById(R.id.zoom_button);
-		zoomButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				fitPage = !fitPage;
-				loadPage();
-			}
-		});
-
-		layoutButton = findViewById(R.id.layout_button);
-		layoutPopupMenu = new PopupMenu(this, layoutButton);
-		layoutPopupMenu.getMenuInflater().inflate(R.menu.layout_menu, layoutPopupMenu.getMenu());
-		layoutPopupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-			public boolean onMenuItemClick(MenuItem item) {
-				float oldLayoutEm = layoutEm;
-				int id = item.getItemId();
-				if (id == R.id.action_layout_6pt) layoutEm = 6;
-				else if (id == R.id.action_layout_7pt) layoutEm = 7;
-				else if (id == R.id.action_layout_8pt) layoutEm = 8;
-				else if (id == R.id.action_layout_9pt) layoutEm = 9;
-				else if (id == R.id.action_layout_10pt) layoutEm = 10;
-				else if (id == R.id.action_layout_11pt) layoutEm = 11;
-				else if (id == R.id.action_layout_12pt) layoutEm = 12;
-				else if (id == R.id.action_layout_13pt) layoutEm = 13;
-				else if (id == R.id.action_layout_14pt) layoutEm = 14;
-				else if (id == R.id.action_layout_15pt) layoutEm = 15;
-				else if (id == R.id.action_layout_16pt) layoutEm = 16;
-				if (oldLayoutEm != layoutEm)
-					relayoutDocument();
-				return true;
-			}
-		});
-		layoutButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				layoutPopupMenu.show();
-			}
-		});
-
-		topBar.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
-				public WindowInsets onApplyWindowInsets(View v, WindowInsets windowInsets)
-				{
-					applyInsets(windowInsets);
-					return WindowInsets.CONSUMED;
-				}
 		});
 
 		if (Build.VERSION.SDK_INT >= 29)
@@ -432,8 +339,122 @@ public class DocumentActivity extends Activity
 		systemInsets = Insets.max(systemInsets, systemBarInsets);
 		Insets cutoutInsets = windowInsets.getInsets(WindowInsets.Type.displayCutout());
 		systemInsets = Insets.max(systemInsets, cutoutInsets);
-		topBar.setPadding(0, systemInsets.top, 0, 0);
 		bottomBar.setPadding(0, 0, 0, systemInsets.bottom);
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.action_bar_menu, menu);
+		actionBarMenu = menu;
+
+		// Configure SearchView
+		searchMenuItem = menu.findItem(R.id.action_search);
+		searchView = (SearchView) searchMenuItem.getActionView();
+
+		// Configure search navigation buttons
+		searchPreviousMenuItem = menu.findItem(R.id.action_search_previous);
+		searchNextMenuItem = menu.findItem(R.id.action_search_next);
+		if (searchPreviousMenuItem != null) searchPreviousMenuItem.setVisible(false);
+		if (searchNextMenuItem != null) searchNextMenuItem.setVisible(false);
+
+		// Set query hint
+		searchView.setQueryHint(getString(R.string.text_search_hint));
+
+		// Set IME options to ensure search action is available
+		searchView.setImeOptions(EditorInfo.IME_ACTION_SEARCH | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+		searchView.setInputType(EditorInfo.TYPE_TEXT_VARIATION_NORMAL | EditorInfo.TYPE_CLASS_TEXT);
+
+		// Set up search text listener
+		searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+			@Override
+			public boolean onQueryTextSubmit(String query) {
+				search(1);  // Search forward on submit
+				showSearchNavigationButtons(true);
+				return true;
+			}
+
+			@Override
+			public boolean onQueryTextChange(String newText) {
+				if (newText.isEmpty()) {
+					stopSearch = true;
+					searchHitPage = -1;
+					searchNeedle = null;
+					pageView.resetHits();
+					showSearchNavigationButtons(false);
+				}
+				return true;
+			}
+		});
+
+		// Handle search close
+		searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+			@Override
+			public boolean onClose() {
+				hideSearch();
+				return false;  // Allow default close behavior
+			}
+		});
+
+		// Enable SearchView's built-in navigation buttons
+		searchView.setIconifiedByDefault(false);
+
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		int id = item.getItemId();
+		if (id == R.id.action_search) {
+			searchMenuItem.expandActionView();
+			return true;
+		} else if (id == R.id.action_search_previous) {
+			if (searchNeedle != null) search(-1);
+			return true;
+		} else if (id == R.id.action_search_next) {
+			if (searchNeedle != null) search(1);
+			return true;
+		} else if (id == R.id.action_share) {
+			shareDocument();
+			return true;
+		} else if (id == R.id.action_zoom) {
+			fitPage = !fitPage;
+			loadPage();
+			return true;
+		} else if (id == R.id.action_layout) {
+			PopupMenu popup = new PopupMenu(this, findViewById(R.id.action_layout));
+			popup.getMenuInflater().inflate(R.menu.layout_menu, popup.getMenu());
+			popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+				public boolean onMenuItemClick(MenuItem item) {
+					float oldLayoutEm = layoutEm;
+					int id = item.getItemId();
+					if (id == R.id.action_layout_6pt) layoutEm = 6;
+					else if (id == R.id.action_layout_7pt) layoutEm = 7;
+					else if (id == R.id.action_layout_8pt) layoutEm = 8;
+					else if (id == R.id.action_layout_9pt) layoutEm = 9;
+					else if (id == R.id.action_layout_10pt) layoutEm = 10;
+					else if (id == R.id.action_layout_11pt) layoutEm = 11;
+					else if (id == R.id.action_layout_12pt) layoutEm = 12;
+					else if (id == R.id.action_layout_13pt) layoutEm = 13;
+					else if (id == R.id.action_layout_14pt) layoutEm = 14;
+					else if (id == R.id.action_layout_15pt) layoutEm = 15;
+					else if (id == R.id.action_layout_16pt) layoutEm = 16;
+					if (oldLayoutEm != layoutEm)
+						relayoutDocument();
+					return true;
+				}
+			});
+			popup.show();
+			return true;
+		} else if (id == R.id.action_outline) {
+			Intent intent = new Intent(DocumentActivity.this, OutlineActivity.class);
+			Bundle bundle = new Bundle();
+			bundle.putInt("POSITION", currentPage);
+			bundle.putSerializable("OUTLINE", flatOutline);
+			intent.putExtras(bundle);
+			startActivityForResult(intent, NAVIGATE_REQUEST);
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
 	}
 
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -579,13 +600,13 @@ public class DocumentActivity extends Activity
 	protected void showKeyboard() {
 		InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
 		if (imm != null)
-			imm.showSoftInput(searchText, 0);
+			imm.showSoftInput(searchView, 0);
 	}
 
 	protected void hideKeyboard() {
 		InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
 		if (imm != null)
-			imm.hideSoftInputFromWindow(searchText.getWindowToken(), 0);
+			imm.hideSoftInputFromWindow(searchView.getWindowToken(), 0);
 	}
 
 	protected void resetSearch() {
@@ -593,6 +614,12 @@ public class DocumentActivity extends Activity
 		searchHitPage = -1;
 		searchNeedle = null;
 		pageView.resetHits();
+		showSearchNavigationButtons(false);
+	}
+
+	private void showSearchNavigationButtons(boolean show) {
+		if (searchPreviousMenuItem != null) searchPreviousMenuItem.setVisible(show);
+		if (searchNextMenuItem != null) searchNextMenuItem.setVisible(show);
 	}
 
 	protected void runSearch(final int startPage, final int direction, final String needle) {
@@ -605,7 +632,7 @@ public class DocumentActivity extends Activity
 				for (int i = 0; i < 9; ++i) {
 					Log.i(APP, "search page " + searchPage);
 					Page page = doc.loadPage(searchPage);
-					Quad[][] hits = page.search(searchNeedle);
+					Quad[][] hits = page.search(needle);
 					page.destroy();
 					if (hits != null && hits.length > 0) {
 						newSearchHitPage = true;
@@ -641,14 +668,13 @@ public class DocumentActivity extends Activity
 	}
 
 	protected void search(int direction) {
-		hideKeyboard();
 		int startPage;
 		if (searchHitPage == currentPage)
 			startPage = currentPage + direction;
 		else
 			startPage = currentPage;
 		searchHitPage = -1;
-		searchNeedle = searchText.getText().toString();
+		searchNeedle = searchView.getQuery().toString();
 		if (searchNeedle.length() == 0)
 			searchNeedle = null;
 		if (searchNeedle != null)
@@ -683,11 +709,11 @@ public class DocumentActivity extends Activity
 				pageCountChanged = true;
 				if (currentPage < 0 || currentPage >= pageCount)
 					currentPage = 0;
-				titleLabel.setText(title);
-				if (isReflowable)
-					layoutButton.setVisibility(View.VISIBLE);
-				else
-					zoomButton.setVisibility(View.VISIBLE);
+				actionBar.setTitle(title);
+				if (actionBarMenu != null) {
+					actionBarMenu.findItem(R.id.action_layout).setVisible(isReflowable);
+					actionBarMenu.findItem(R.id.action_zoom).setVisible(!isReflowable);
+				}
 				loadPage();
 				loadOutline();
 			}
@@ -751,8 +777,8 @@ public class DocumentActivity extends Activity
 				}
 			}
 			public void run() {
-				if (flatOutline != null)
-					outlineButton.setVisibility(View.VISIBLE);
+				if (flatOutline != null && actionBarMenu != null)
+					actionBarMenu.findItem(R.id.action_outline).setVisible(true);
 				if (outlineTruncated)
 					Toast.makeText(DocumentActivity.this, getString(R.string.toast_outline_too_large), Toast.LENGTH_SHORT).show();
 			}
@@ -824,38 +850,51 @@ public class DocumentActivity extends Activity
 	}
 
 	protected void showSearch() {
-		currentBar = searchBar;
-		actionBar.setVisibility(View.GONE);
-		searchBar.setVisibility(View.VISIBLE);
-		searchBar.requestFocus();
-		showKeyboard();
+		searchMenuItem.expandActionView();
+		searchView.setQuery("", false);
+		searchView.requestFocus();
+		// Show SearchView's built-in navigation buttons
+		searchView.setIconified(false);
 	}
 
 	protected void hideSearch() {
-		currentBar = actionBar;
-		actionBar.setVisibility(View.VISIBLE);
-		searchBar.setVisibility(View.GONE);
-		hideKeyboard();
+		searchMenuItem.collapseActionView();
+		searchView.setQuery("", false);
 		resetSearch();
+		showSearchNavigationButtons(false);
+	}
+
+	protected void shareDocument() {
+		Intent shareIntent = new Intent(Intent.ACTION_SEND);
+		shareIntent.setType(mimetype);
+		Uri uri = getIntent().getData();
+		ClipData.Item item = new ClipData.Item(uri);
+		ClipData clip = new ClipData(title != null ? title : "", new String[]{mimetype}, item);
+		shareIntent.setClipData(clip);
+		shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+		shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+		shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+		
+		try {
+			startActivity(Intent.createChooser(shareIntent, getString(R.string.share_document)));
+		} catch (android.content.ActivityNotFoundException e) {
+			Toast.makeText(this, getString(R.string.toast_no_apps_to_share), Toast.LENGTH_SHORT).show();
+		}
 	}
 
 	public void toggleUI() {
 		toggledUI = true;
 		if (bottomBar.getVisibility() == View.VISIBLE) {
-			topBar.setVisibility(View.GONE);
-			currentBar.setVisibility(View.GONE);
+			actionBar.hide();
 			bottomBar.setVisibility(View.GONE);
-			if (currentBar == searchBar)
-				hideKeyboard();
+			// Collapse SearchView if expanded
+			if (searchMenuItem != null && searchMenuItem.isActionViewExpanded()) {
+				searchMenuItem.collapseActionView();
+			}
 		} else {
-			topBar.setVisibility(View.VISIBLE);
-			currentBar.setVisibility(View.VISIBLE);
+			actionBar.show();
 			bottomBar.setVisibility(View.VISIBLE);
 			showPageNumber(currentPage + 1);
-			if (currentBar == searchBar) {
-				searchBar.requestFocus();
-				showKeyboard();
-			}
 		}
 	}
 

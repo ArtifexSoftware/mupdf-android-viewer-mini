@@ -4,6 +4,7 @@
 	<application>
 		<activity android:name=".DocumentActivity"
 				android:label="MuPDF mini"
+				android:theme="@style/MuPDFTheme"
 				android:configChanges="orientation|screenSize|keyboardHidden"
 				android:hardwareAccelerated="false"
 				android:exported="true"
